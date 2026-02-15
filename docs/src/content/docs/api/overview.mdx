@@ -82,6 +82,10 @@ Authorization: Bearer pk_live_...
 
 The API supports CORS for all origins. Only `GET` and `OPTIONS` methods are allowed - the API is read-only.
 
+## Performance
+
+API responses typically return in **50-80ms**, making Promptly fast enough for speed-critical applications. This means you can fetch prompts at request time rather than only at startup - your users won't notice the overhead.
+
 ## REST API vs SDK
 
 | | REST API | TypeScript SDK |

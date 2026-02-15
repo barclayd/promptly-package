@@ -104,7 +104,7 @@ When you exceed your usage limit, the API returns a `429` status with usage deta
 
 **Cache responses.** Prompt content doesn't change between publishes. Cache the response and only re-fetch when you deploy or when you know the prompt has been updated.
 
-**Fetch at startup.** Instead of fetching prompts on every request, fetch them once when your application starts and hold them in memory.
+**Fetch at startup or per request.** With response times of 50-80ms, fetching prompts on each request is practical. For high-throughput workloads, fetch once at startup and hold them in memory.
 
 **Monitor usage.** Check the `X-RateLimit-Remaining` header periodically to avoid hitting limits unexpectedly.
 
