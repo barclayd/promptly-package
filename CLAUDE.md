@@ -109,3 +109,54 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Project
+
+This is `@promptly/prompts` — a TypeScript SDK for the Promptly CMS API. It provides a runtime client for fetching prompts and a codegen CLI for generating typed Zod schemas.
+
+### Key scripts
+
+- `bun run check` — runs types, lint, and test sequentially
+- `bun run types` — `tsgo --noEmit` (uses @typescript/native-preview)
+- `bun run lint` — `biome check .`
+- `bun run lint:fix` — `biome check --write .`
+- `bun run build` — `tsup`
+
+### Project structure
+
+- `src/client.ts` — runtime client (`createPromptClient`) with `get()` and `aiParams()` methods
+- `src/schema/builder.ts` — builds Zod schemas from `SchemaField[]` at runtime
+- `src/schema/codegen.ts` — generates Zod source code strings from `SchemaField[]`
+- `src/errors.ts` — `PromptlyError` class with `code`, `status`, `usage`, `upgradeUrl`
+- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, etc.)
+- `src/__tests__/` — flat test files (no `describe` nesting)
+
+### Dependencies
+
+- **Runtime:** citty, jiti
+- **Peer:** zod ^3.23, ai ^4.0, typescript ^5
+- **Dev:** @biomejs/biome, @types/bun, @typescript/native-preview, tsup
+
+## Code style
+
+- Functional TypeScript, arrow functions only
+- `type` over `interface` always
+- No inline if statements (always use braces + newlines)
+- Avoid nested if statements (use early returns, guard clauses, maps)
+- Formatting and linting enforced by Biome — run `bun run lint:fix` after edits
+
+## Testing conventions
+
+Follow Kent C. Dodds' "Avoid Nesting When You're Testing":
+
+- **No `describe` blocks** — flat `test()` calls only
+- **No `beforeEach` for setup** — use inline `setup()` helper functions that each test calls with its own data
+- **`afterEach` is OK** for cleanup (e.g., restoring `globalThis.fetch`)
+- **Descriptive test names** with function prefix: `"get() fetches prompt with correct URL"`, `"buildFieldSchema: string"`, `"schemaFieldsToZodSource: generates enum field"`
+- **Pure helper functions** (like `field()`) are fine — they return fresh objects with no shared mutable state
+- Import from `bun:test`: `import { test, expect } from 'bun:test'`
+
+## CI
+
+GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`):
+checkout → setup Bun (`oven-sh/setup-bun@v2`) → `bun install --frozen-lockfile` → types → lint → test → build
