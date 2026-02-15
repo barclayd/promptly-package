@@ -201,6 +201,8 @@ Description of the change
 
 Save it as `.changeset/<kebab-case-name>.md` and commit it with the PR.
 
+**When creating a PR, always include a changeset file.** Determine the appropriate semver bump (`patch` for fixes, `minor` for new features, `major` for breaking changes) and write a concise description of the user-facing change. Commit the changeset file alongside the code changes.
+
 ### How releases work
 
 - **On PR:** A canary version (`x.y.z-canary.<sha>`) is published to npm under the `canary` tag. A sticky PR comment shows the install command.
