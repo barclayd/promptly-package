@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 import {
+  compareSemver,
   extractTemplateVariables,
   generateTypeDeclaration,
+  groupAndSortVersions,
 } from '../cli/generate.ts';
 import type { PromptResponse } from '../types.ts';
 
@@ -43,6 +45,94 @@ test('extractTemplateVariables: deduplicates repeated variables', () => {
   expect(result).toEqual(['name', 'other']);
 });
 
+// --- compareSemver ---
+
+test('compareSemver: returns negative when a < b', () => {
+  expect(compareSemver('1.0.0', '2.0.0')).toBeLessThan(0);
+});
+
+test('compareSemver: returns positive when a > b', () => {
+  expect(compareSemver('2.0.0', '1.0.0')).toBeGreaterThan(0);
+});
+
+test('compareSemver: returns 0 for equal versions', () => {
+  expect(compareSemver('1.2.3', '1.2.3')).toBe(0);
+});
+
+test('compareSemver: compares minor versions', () => {
+  expect(compareSemver('1.1.0', '1.2.0')).toBeLessThan(0);
+});
+
+test('compareSemver: compares patch versions', () => {
+  expect(compareSemver('1.0.1', '1.0.2')).toBeLessThan(0);
+});
+
+// --- groupAndSortVersions ---
+
+test('groupAndSortVersions: deduplicates versions with identical variables', () => {
+  const prompt = makePrompt({
+    version: '2.0.0',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    userMessage: '${a} ${b}',
+    publishedVersions: [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.0.0', userMessage: '${a} ${b}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.1.0', userMessage: '${a} ${b}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '2.0.0', userMessage: '${a} ${b}' },
+    ],
+  });
+  const groups = groupAndSortVersions(prompt);
+
+  expect(groups).toHaveLength(1);
+  expect(groups[0]?.versions).toEqual(['latest', '2.0.0', '1.1.0', '1.0.0']);
+  expect(groups[0]?.variables).toEqual(['a', 'b']);
+});
+
+test('groupAndSortVersions: sorts versions descending within group', () => {
+  const prompt = makePrompt({
+    version: '3.0.0',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    userMessage: '${x}',
+    publishedVersions: [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.0.0', userMessage: '${x}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '3.0.0', userMessage: '${x}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '2.0.0', userMessage: '${x}' },
+    ],
+  });
+  const groups = groupAndSortVersions(prompt);
+
+  expect(groups).toHaveLength(1);
+  expect(groups[0]?.versions).toEqual(['latest', '3.0.0', '2.0.0', '1.0.0']);
+});
+
+test('groupAndSortVersions: sorts groups with latest first then by highest version', () => {
+  const prompt = makePrompt({
+    version: '2.0.0',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    userMessage: '${a} ${b}',
+    publishedVersions: [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.0.0', userMessage: '${x}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.1.0', userMessage: '${x}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '2.0.0', userMessage: '${a} ${b}' },
+    ],
+  });
+  const groups = groupAndSortVersions(prompt);
+
+  expect(groups).toHaveLength(2);
+  expect(groups[0]?.versions).toEqual(['latest', '2.0.0']);
+  expect(groups[0]?.variables).toEqual(['a', 'b']);
+  expect(groups[1]?.versions).toEqual(['1.1.0', '1.0.0']);
+  expect(groups[1]?.variables).toEqual(['x']);
+});
+
 // --- generateTypeDeclaration ---
 
 test('generateTypeDeclaration: generates correct declare module block', () => {
@@ -56,7 +146,7 @@ test('generateTypeDeclaration: generates correct declare module block', () => {
   expect(result).toContain("declare module '@promptlycms/prompts' {");
   expect(result).toContain('interface PromptVariableMap {');
   expect(result).toContain("'test-id-123': {");
-  expect(result).toContain('latest: {');
+  expect(result).toContain("'latest'");
   expect(result).toContain('name: string;');
   expect(result).toContain('task: string;');
 });
@@ -70,7 +160,8 @@ test('generateTypeDeclaration: handles prompts with no template variables', () =
   ];
   const result = generateTypeDeclaration(prompts);
 
-  expect(result).toContain('latest: Record<string, never>;');
+  expect(result).toContain("'latest'");
+  expect(result).toContain('Record<string, never>');
 });
 
 test('generateTypeDeclaration: handles multiple prompts', () => {
@@ -111,15 +202,10 @@ import '@promptlycms/prompts';
 
 declare module '@promptlycms/prompts' {
   interface PromptVariableMap {
-    // v1.0.0
     'JPxlUpstuhXB5OwOtKPpj': {
-      latest: {
-        pickupLocation: string;
-        items: string;
-        movesCount: string;
-        movesTimePeriod: string;
-      };
-      '1.0.0': {
+      [V in
+        | 'latest'
+        | '1.0.0']: {
         pickupLocation: string;
         items: string;
         movesCount: string;
@@ -133,7 +219,7 @@ declare module '@promptlycms/prompts' {
   expect(result).toBe(expected);
 });
 
-test('generateTypeDeclaration: generates nested structure with publishedVersions', () => {
+test('generateTypeDeclaration: generates intersection with publishedVersions', () => {
   const prompts = [
     makePrompt({
       promptId: 'multi-ver',
@@ -155,18 +241,16 @@ import '@promptlycms/prompts';
 
 declare module '@promptlycms/prompts' {
   interface PromptVariableMap {
-    // v2.0.0
     'multi-ver': {
-      latest: {
+      [V in
+        | 'latest'
+        | '2.0.0']: {
         pickupLocation: string;
         items: string;
       };
-      '1.0.0': {
+    } & {
+      [V in '1.0.0']: {
         name: string;
-      };
-      '2.0.0': {
-        pickupLocation: string;
-        items: string;
       };
     };
   }
@@ -189,6 +273,34 @@ test('generateTypeDeclaration: handles publishedVersions with no variables', () 
   ];
   const result = generateTypeDeclaration(prompts);
 
-  expect(result).toContain('latest: Record<string, never>;');
-  expect(result).toContain("'1.0.0': Record<string, never>;");
+  expect(result).toContain("'latest'");
+  expect(result).toContain("'1.0.0'");
+  expect(result).toContain('Record<string, never>');
+});
+
+test('generateTypeDeclaration: creates intersection for different variable groups', () => {
+  const prompt = makePrompt({
+    promptId: 'multi-group',
+    version: '3.0.0',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    userMessage: '${a} ${b} ${c}',
+    publishedVersions: [
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.0.0', userMessage: '${a}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '1.1.0', userMessage: '${a}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '2.0.0', userMessage: '${a} ${b}' },
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      { version: '3.0.0', userMessage: '${a} ${b} ${c}' },
+    ],
+  });
+  const result = generateTypeDeclaration([prompt]);
+
+  expect(result).toContain('} & {');
+  expect(result).toContain("'latest'");
+  expect(result).toContain("'3.0.0'");
+  expect(result).toContain("'2.0.0'");
+  expect(result).toContain("'1.1.0'");
+  expect(result).toContain("'1.0.0'");
 });

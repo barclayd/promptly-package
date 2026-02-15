@@ -193,9 +193,8 @@ test.skipIf(!TEST_API_KEY)(
     expect(declaration).toContain('interface PromptVariableMap');
 
     for (const prompt of prompts) {
-      expect(declaration).toContain(`// v${prompt.version}`);
       expect(declaration).toContain(`'${prompt.promptId}'`);
-      expect(declaration).toContain('latest:');
+      expect(declaration).toContain("'latest'");
       const vars = extractTemplateVariables(prompt.userMessage);
       for (const v of vars) {
         expect(declaration).toContain(`${v}: string;`);
@@ -204,7 +203,7 @@ test.skipIf(!TEST_API_KEY)(
       // Verify per-version entries from publishedVersions
       if (prompt.publishedVersions) {
         for (const pv of prompt.publishedVersions) {
-          expect(declaration).toContain(`'${pv.version}':`);
+          expect(declaration).toContain(`'${pv.version}'`);
         }
       }
     }

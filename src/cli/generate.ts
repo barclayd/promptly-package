@@ -36,31 +36,145 @@ export const fetchAllPrompts = async (
   return response.json() as Promise<PromptResponse[]>;
 };
 
-const generateVariableBlock = (
-  variables: string[],
-  indent: string,
-): string[] => {
-  if (variables.length === 0) {
-    return [`${indent}Record<string, never>;`];
+export const compareSemver = (a: string, b: string): number => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) {
+      return diff;
+    }
   }
-  const lines: string[] = [`${indent}{`];
-  for (const v of variables) {
-    lines.push(`${indent}  ${v}: string;`);
-  }
-  lines.push(`${indent}};`);
-  return lines;
+  return 0;
 };
 
-const generateVersionEntries = (
-  label: string,
-  userMessage: string,
+const variableFingerprint = (variables: string[]): string =>
+  [...variables].sort().join(',');
+
+type VersionGroup = {
+  versions: string[];
+  variables: string[];
+};
+
+export const groupAndSortVersions = (
+  prompt: PromptResponse,
+): VersionGroup[] => {
+  const entries: { version: string; variables: string[] }[] = [];
+
+  const latestVars = extractTemplateVariables(prompt.userMessage);
+
+  if (prompt.publishedVersions) {
+    for (const pv of prompt.publishedVersions) {
+      entries.push({
+        version: pv.version,
+        variables: extractTemplateVariables(pv.userMessage),
+      });
+    }
+  } else {
+    // Backward compat: no publishedVersions — duplicate latest as current version
+    entries.push({
+      version: prompt.version,
+      variables: latestVars,
+    });
+  }
+
+  // Group by variable fingerprint
+  const groups = new Map<string, VersionGroup>();
+
+  for (const entry of entries) {
+    const fp = variableFingerprint(entry.variables);
+    const existing = groups.get(fp);
+    if (existing) {
+      existing.versions.push(entry.version);
+    } else {
+      groups.set(fp, {
+        versions: [entry.version],
+        variables: entry.variables,
+      });
+    }
+  }
+
+  // Add 'latest' to the group matching current version's fingerprint
+  const latestFp = variableFingerprint(latestVars);
+  const latestGroup = groups.get(latestFp);
+  if (latestGroup) {
+    latestGroup.versions.unshift('latest');
+  }
+
+  // Sort versions within each group: 'latest' first, then semver descending
+  for (const group of groups.values()) {
+    group.versions.sort((a, b) => {
+      if (a === 'latest') {
+        return -1;
+      }
+      if (b === 'latest') {
+        return 1;
+      }
+      return compareSemver(b, a);
+    });
+  }
+
+  // Sort groups: group containing 'latest' first, then by highest version descending
+  const result = [...groups.values()];
+  result.sort((a, b) => {
+    const aHasLatest = a.versions[0] === 'latest';
+    const bHasLatest = b.versions[0] === 'latest';
+    if (aHasLatest && !bHasLatest) {
+      return -1;
+    }
+    if (!aHasLatest && bHasLatest) {
+      return 1;
+    }
+    const aHighest = a.versions.find((v) => v !== 'latest') ?? '';
+    const bHighest = b.versions.find((v) => v !== 'latest') ?? '';
+    return compareSemver(bHighest, aHighest);
+  });
+
+  return result;
+};
+
+const generateMappedTypeBlock = (
+  group: VersionGroup,
   indent: string,
 ): string[] => {
-  const variables = extractTemplateVariables(userMessage);
-  const block = generateVariableBlock(variables, indent);
-  // Replace the leading indent on the first line with the key
-  block[0] = `${indent}${label}: ${block[0]?.trimStart()}`;
-  return block;
+  const lines: string[] = [];
+  const { versions, variables } = group;
+
+  if (versions.length === 1) {
+    const vKey = `'${versions[0]}'`;
+    if (variables.length === 0) {
+      lines.push(`${indent}[V in ${vKey}]: Record<string, never>;`);
+    } else {
+      lines.push(`${indent}[V in ${vKey}]: {`);
+      for (const v of variables) {
+        lines.push(`${indent}  ${v}: string;`);
+      }
+      lines.push(`${indent}};`);
+    }
+  } else {
+    lines.push(`${indent}[V in`);
+    for (let i = 0; i < versions.length; i++) {
+      const vKey = `'${versions[i]}'`;
+      const isLast = i === versions.length - 1;
+      if (isLast) {
+        if (variables.length === 0) {
+          lines.push(`${indent}  | ${vKey}]: Record<string, never>;`);
+        } else {
+          lines.push(`${indent}  | ${vKey}]: {`);
+        }
+      } else {
+        lines.push(`${indent}  | ${vKey}`);
+      }
+    }
+    if (variables.length > 0) {
+      for (const v of variables) {
+        lines.push(`${indent}  ${v}: string;`);
+      }
+      lines.push(`${indent}};`);
+    }
+  }
+
+  return lines;
 };
 
 export const generateTypeDeclaration = (prompts: PromptResponse[]): string => {
@@ -73,36 +187,30 @@ export const generateTypeDeclaration = (prompts: PromptResponse[]): string => {
   ];
 
   for (const prompt of prompts) {
-    lines.push(`    // v${prompt.version}`);
-    lines.push(`    '${prompt.promptId}': {`);
+    const groups = groupAndSortVersions(prompt);
 
-    // latest always maps to the current version's variables
-    lines.push(
-      ...generateVersionEntries('latest', prompt.userMessage, '      '),
-    );
-
-    if (prompt.publishedVersions) {
-      for (const pv of prompt.publishedVersions) {
-        lines.push(
-          ...generateVersionEntries(
-            `'${pv.version}'`,
-            pv.userMessage,
-            '      ',
-          ),
-        );
+    if (groups.length === 1) {
+      const group = groups[0];
+      if (group) {
+        lines.push(`    '${prompt.promptId}': {`);
+        lines.push(...generateMappedTypeBlock(group, '      '));
+        lines.push('    };');
       }
     } else {
-      // Backward compat: no publishedVersions — duplicate latest as current version
-      lines.push(
-        ...generateVersionEntries(
-          `'${prompt.version}'`,
-          prompt.userMessage,
-          '      ',
-        ),
-      );
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        if (!group) {
+          continue;
+        }
+        if (i === 0) {
+          lines.push(`    '${prompt.promptId}': {`);
+        } else {
+          lines.push('    } & {');
+        }
+        lines.push(...generateMappedTypeBlock(group, '      '));
+      }
+      lines.push('    };');
     }
-
-    lines.push('    };');
   }
 
   lines.push('  }');
