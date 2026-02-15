@@ -1,0 +1,111 @@
+---
+title: Rate Limits
+description: Understand API usage quotas, rate limit headers, and how to handle 429 responses.
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+The Promptly API enforces monthly usage limits based on your plan tier. All limits are per API key.
+
+## Plan tiers
+
+| Plan | Monthly requests | Price |
+|------|-----------------|-------|
+| Free | 5,000 | $0 |
+| Pro | 50,000 | [$29/month](https://app.promptlycms.com/settings?tab=billing) |
+
+## Rate limit headers
+
+Every API response includes headers with your current usage:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Your monthly request quota |
+| `X-RateLimit-Remaining` | Requests remaining this month |
+| `X-RateLimit-Reset` | Unix timestamp when the quota resets |
+
+### Reading headers
+
+<Tabs>
+  <TabItem label="fetch">
+  ```typescript
+  const response = await fetch(
+    'https://api.promptlycms.com/prompts/my-prompt',
+    {
+      headers: { Authorization: 'Bearer pk_live_...' },
+    },
+  );
+
+  const limit = response.headers.get('X-RateLimit-Limit');
+  const remaining = response.headers.get('X-RateLimit-Remaining');
+  const reset = response.headers.get('X-RateLimit-Reset');
+
+  console.log(`${remaining}/${limit} requests remaining`);
+  console.log(`Resets at ${new Date(Number(reset) * 1000).toISOString()}`);
+  ```
+  </TabItem>
+  <TabItem label="curl">
+  ```bash
+  curl -i https://api.promptlycms.com/prompts/my-prompt \
+    -H "Authorization: Bearer pk_live_..."
+
+  # Response headers:
+  # X-RateLimit-Limit: 5000
+  # X-RateLimit-Remaining: 4832
+  # X-RateLimit-Reset: 1735689600
+  ```
+  </TabItem>
+  <TabItem label="Python">
+  ```python
+  import requests
+
+  response = requests.get(
+      "https://api.promptlycms.com/prompts/my-prompt",
+      headers={"Authorization": "Bearer pk_live_..."},
+  )
+
+  limit = response.headers["X-RateLimit-Limit"]
+  remaining = response.headers["X-RateLimit-Remaining"]
+  reset = response.headers["X-RateLimit-Reset"]
+
+  print(f"{remaining}/{limit} requests remaining")
+  ```
+  </TabItem>
+</Tabs>
+
+## 429 responses
+
+When you exceed your usage limit, the API returns a `429` status with usage details and an upgrade link:
+
+```json
+{
+  "error": "Usage limit exceeded",
+  "code": "USAGE_LIMIT_EXCEEDED",
+  "usage": {
+    "used": 5000,
+    "limit": 5000
+  },
+  "upgradeUrl": "https://app.promptlycms.com/settings?upgrade"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `error` | `string` | Human-readable error message |
+| `code` | `string` | Always `USAGE_LIMIT_EXCEEDED` |
+| `usage` | `object` | Current usage and limit counts |
+| `upgradeUrl` | `string` | Direct link to upgrade your plan |
+
+<Aside type="tip">
+  The SDK surfaces these fields on the `PromptlyError` object. See the [error handling guide](/guides/error-handling/) for SDK-specific patterns.
+</Aside>
+
+## Best practices
+
+**Cache responses.** Prompt content doesn't change between publishes. Cache the response and only re-fetch when you deploy or when you know the prompt has been updated.
+
+**Fetch at startup.** Instead of fetching prompts on every request, fetch them once when your application starts and hold them in memory.
+
+**Monitor usage.** Check the `X-RateLimit-Remaining` header periodically to avoid hitting limits unexpectedly.
+
+**Use batch fetching.** If you need multiple prompts, use `GET /prompts` to fetch all of them in a single request rather than making individual requests for each one.
