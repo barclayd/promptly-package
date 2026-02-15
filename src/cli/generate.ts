@@ -2,10 +2,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createPromptClient } from '../client.ts';
 import { schemaFieldsToZodSource } from '../schema/codegen.ts';
-import type { PromptEntry, PromptlyConfig, PromptResponse } from '../types.ts';
+import type { PromptEntry, PromptlyConfig, PromptResult } from '../types.ts';
 
 const extractTemplateVariables = (text: string): string[] => {
-  const matches = text.matchAll(/\{\{(\w+)\}\}/g);
+  const matches = text.matchAll(/\$\{(\w+)\}/g);
   const vars = new Set<string>();
   for (const match of matches) {
     const captured = match[1];
@@ -25,10 +25,11 @@ const toPascalCase = (str: string): string =>
 
 const generatePromptFile = (
   entry: PromptEntry,
-  prompt: PromptResponse,
+  prompt: PromptResult,
 ): string => {
+  const rawUserMessage = String(prompt.userMessage);
   const hasSchema = prompt.config.schema && prompt.config.schema.length > 0;
-  const variables = extractTemplateVariables(prompt.userMessage);
+  const variables = extractTemplateVariables(rawUserMessage);
   const typeName = `${toPascalCase(entry.name)}Output`;
 
   const lines: string[] = [
@@ -57,7 +58,7 @@ const generatePromptFile = (
   lines.push(`  promptName: '${escapeString(prompt.promptName)}',`);
   lines.push(`  version: '${prompt.version}',`);
   lines.push(`  system: '${escapeString(prompt.systemMessage)}',`);
-  lines.push(`  userMessage: '${escapeString(prompt.userMessage)}',`);
+  lines.push(`  userMessage: '${escapeString(rawUserMessage)}',`);
   lines.push(`  temperature: ${prompt.config.temperature},`);
   if (prompt.config.model) {
     lines.push(`  model: '${escapeString(prompt.config.model)}',`);
@@ -78,11 +79,11 @@ const generatePromptFile = (
   lines.push(
     `export const ${entry.name}Params = (variables?: ${varsType}) => {`,
   );
-  lines.push(`  let prompt = '${escapeString(prompt.userMessage)}';`);
+  lines.push(`  let prompt = '${escapeString(rawUserMessage)}';`);
   lines.push('  if (variables) {');
   lines.push('    for (const [key, value] of Object.entries(variables)) {');
   // biome-ignore lint/suspicious/noTemplateCurlyInString: generated code output
-  lines.push("      prompt = prompt.replaceAll(`{{${key}}}`, value ?? '');");
+  lines.push("      prompt = prompt.replaceAll(`\\${${key}}`, value ?? '');");
   lines.push('    }');
   lines.push('  }');
 

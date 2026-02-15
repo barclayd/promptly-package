@@ -1,4 +1,4 @@
-export { createPromptClient } from './client.ts';
+export { createPromptClient, interpolate } from './client.ts';
 export { PromptlyError } from './errors.ts';
 export type {
   AiParams,
@@ -11,7 +11,9 @@ export type {
   PromptConfig,
   PromptEntry,
   PromptlyConfig,
+  PromptMessage,
   PromptResponse,
+  PromptResult,
   SchemaField,
   SchemaFieldParams,
   ValidationRule,

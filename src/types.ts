@@ -69,6 +69,16 @@ export type PromptResponse = {
   config: PromptConfig;
 };
 
+export type PromptMessage = {
+  (variables: Record<string, string>): string;
+  toString(): string;
+};
+
+export type PromptResult = Omit<PromptResponse, 'userMessage'> & {
+  userMessage: PromptMessage;
+  temperature: number;
+};
+
 export type ErrorCode =
   | 'UNAUTHORIZED'
   | 'INVALID_KEY'
@@ -108,7 +118,7 @@ export type AiParams = {
 };
 
 export type PromptClient = {
-  get: (promptId: string, options?: GetOptions) => Promise<PromptResponse>;
+  get: (promptId: string, options?: GetOptions) => Promise<PromptResult>;
   aiParams: (promptId: string, options?: AiParamsOptions) => Promise<AiParams>;
 };
 

@@ -10,7 +10,8 @@ const mockPromptResponse: PromptResponse = {
   promptName: 'Test Prompt',
   version: '1.0.0',
   systemMessage: 'You are a helpful assistant.',
-  userMessage: 'Hello {{name}}, please help with {{task}}.',
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  userMessage: 'Hello ${name}, please help with ${task}.',
   config: {
     model: 'claude-haiku-4.5',
     temperature: 0.7,
@@ -93,7 +94,11 @@ test('get() fetches prompt with correct URL and auth header', async () => {
   expect(init.headers).toEqual({
     Authorization: 'Bearer test-key',
   });
-  expect(result).toEqual(mockPromptResponse);
+  expect(result.promptId).toBe(mockPromptResponse.promptId);
+  expect(result.systemMessage).toBe(mockPromptResponse.systemMessage);
+  expect(String(result.userMessage)).toBe(mockPromptResponse.userMessage);
+  expect(result.config).toEqual(mockPromptResponse.config);
+  expect(result.temperature).toBe(mockPromptResponse.config.temperature);
 });
 
 test('get() includes version query param', async () => {
@@ -184,7 +189,7 @@ test('aiParams() returns system, prompt, and temperature', async () => {
   const params = await client.aiParams('my-prompt');
 
   expect(params.system).toBe('You are a helpful assistant.');
-  expect(params.prompt).toBe('Hello {{name}}, please help with {{task}}.');
+  expect(params.prompt).toBe(mockPromptResponse.userMessage);
   expect(params.temperature).toBe(0.7);
   expect(params.output).toBeUndefined();
 });
@@ -211,4 +216,29 @@ test('aiParams() passes version option through', async () => {
 
   const [url] = getMockCalls()[0] as [string];
   expect(url).toContain('version=1.5.0');
+});
+
+test('get() returns callable userMessage that interpolates variables', async () => {
+  const { client } = setup();
+  const result = await client.get('my-prompt');
+
+  expect(result.userMessage({ name: 'Alice', task: 'coding' })).toBe(
+    'Hello Alice, please help with coding.',
+  );
+});
+
+test('get() returns userMessage with toString() for raw template', async () => {
+  const { client } = setup();
+  const result = await client.get('my-prompt');
+
+  expect(result.userMessage.toString()).toBe(mockPromptResponse.userMessage);
+  expect(String(result.userMessage)).toBe(mockPromptResponse.userMessage);
+});
+
+test('get() returns temperature at top level', async () => {
+  const { client } = setup();
+  const result = await client.get('my-prompt');
+
+  expect(result.temperature).toBe(0.7);
+  expect(result.temperature).toBe(result.config.temperature);
 });

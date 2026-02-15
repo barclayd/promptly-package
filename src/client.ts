@@ -6,20 +6,29 @@ import type {
   GetOptions,
   PromptClient,
   PromptClientConfig,
+  PromptMessage,
   PromptResponse,
+  PromptResult,
 } from './types.ts';
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
 
-const replaceVariables = (
-  text: string,
+export const interpolate = (
+  template: string,
   variables: Record<string, string>,
 ): string => {
-  let result = text;
+  let result = template;
   for (const [key, value] of Object.entries(variables)) {
-    result = result.replaceAll(`{{${key}}}`, value);
+    result = result.replaceAll(`\${${key}}`, value);
   }
   return result;
+};
+
+const createPromptMessage = (template: string): PromptMessage => {
+  const fn = (variables: Record<string, string>): string =>
+    interpolate(template, variables);
+  fn.toString = () => template;
+  return fn as PromptMessage;
 };
 
 export const createPromptClient = (
@@ -49,10 +58,17 @@ export const createPromptClient = (
     return response.json() as Promise<PromptResponse>;
   };
 
-  const get = (
+  const get = async (
     promptId: string,
     options?: GetOptions,
-  ): Promise<PromptResponse> => fetchPrompt(promptId, options);
+  ): Promise<PromptResult> => {
+    const response = await fetchPrompt(promptId, options);
+    return {
+      ...response,
+      userMessage: createPromptMessage(response.userMessage),
+      temperature: response.config.temperature,
+    };
+  };
 
   const aiParams = async (
     promptId: string,
@@ -62,10 +78,9 @@ export const createPromptClient = (
       version: options?.version,
     });
 
-    let userMessage = prompt.userMessage;
-    if (options?.variables) {
-      userMessage = replaceVariables(userMessage, options.variables);
-    }
+    const userMessage = options?.variables
+      ? interpolate(prompt.userMessage, options.variables)
+      : prompt.userMessage;
 
     const result: AiParams = {
       system: prompt.systemMessage,
