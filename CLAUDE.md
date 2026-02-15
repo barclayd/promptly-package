@@ -185,7 +185,21 @@ Uses [Changesets](https://github.com/changesets/changesets) for versioning and n
 
 ### Adding a changeset
 
-When making a user-facing change, run `bunx changeset` and follow the prompts to select a semver bump (patch/minor/major) and describe the change. This creates a markdown file in `.changeset/` that gets consumed at release time.
+Every PR with user-facing changes **must** include a changeset file. Without one, the release workflow has nothing to version or publish. The [changeset-bot](https://github.com/apps/changeset-bot) is installed and comments on every PR with changeset status.
+
+Run `bunx changeset` and follow the prompts to select a semver bump (patch/minor/major) and describe the change. This creates a markdown file in `.changeset/` that gets consumed at release time.
+
+To create a changeset non-interactively (e.g. in a script), write the file manually:
+
+```md
+---
+"@promptlycms/prompts": patch
+---
+
+Description of the change
+```
+
+Save it as `.changeset/<kebab-case-name>.md` and commit it with the PR.
 
 ### How releases work
 
@@ -197,3 +211,11 @@ When making a user-facing change, run `bunx changeset` and follow the prompts to
 ### npm authentication
 
 Uses OIDC trusted publishing — no `NPM_TOKEN` secret needed. Requires a trusted publisher connection configured on npmjs.com for the `@promptlycms/prompts` package pointing to the `release.yml` workflow in `barclayd/promptly-package`.
+
+## Public API naming
+
+The README is the public contract for npm consumers. Keep it in sync with the actual exports:
+
+- `createPromptlyClient` (not `createPromptClient`)
+- `client.getPrompt()` (not `client.get()`)
+- `PromptlyClient` (not `PromptClient`)
