@@ -1,6 +1,15 @@
 import { writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { detectProviderName } from '../client.ts';
 import { createErrorFromResponse } from '../errors.ts';
 import type { PromptResponse } from '../types.ts';
+
+const PROVIDER_PACKAGES: Record<string, string> = {
+  anthropic: '@ai-sdk/anthropic',
+  openai: '@ai-sdk/openai',
+  google: '@ai-sdk/google',
+  mistral: '@ai-sdk/mistral',
+};
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
 
@@ -220,6 +229,39 @@ export const generateTypeDeclaration = (prompts: PromptResponse[]): string => {
   return lines.join('\n');
 };
 
+const warnMissingProviders = (prompts: PromptResponse[]): void => {
+  const require = createRequire(import.meta.url);
+  const needed = new Map<string, string[]>();
+
+  for (const prompt of prompts) {
+    const provider = detectProviderName(prompt.config.model);
+    if (!provider) {
+      continue;
+    }
+    const pkg = PROVIDER_PACKAGES[provider];
+    if (!pkg) {
+      continue;
+    }
+    const existing = needed.get(pkg);
+    if (existing) {
+      existing.push(prompt.promptName);
+    } else {
+      needed.set(pkg, [prompt.promptName]);
+    }
+  }
+
+  for (const [pkg, promptNames] of needed) {
+    try {
+      require.resolve(pkg);
+    } catch {
+      const names = promptNames.map((n) => `"${n}"`).join(', ');
+      console.warn(
+        `  Warning: ${names} requires ${pkg} — install it: npm install ${pkg}`,
+      );
+    }
+  }
+};
+
 export const generate = async (
   apiKey: string,
   outputPath: string,
@@ -233,6 +275,7 @@ export const generate = async (
   }
 
   console.log(`  Found ${prompts.length} prompt(s)`);
+  warnMissingProviders(prompts);
 
   const content = generateTypeDeclaration(prompts);
   await writeFile(outputPath, content, 'utf-8');

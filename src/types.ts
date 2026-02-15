@@ -113,7 +113,7 @@ export type PromptResult<
 > = Omit<PromptResponse, 'userMessage'> & {
   userMessage: PromptMessage<V>;
   temperature: number;
-  model: import('ai').LanguageModel | undefined;
+  model: import('ai').LanguageModel;
 };
 
 // --- Batch types ---
@@ -171,7 +171,7 @@ export type AiParams = {
   system: string;
   prompt: string;
   temperature: number;
-  model: import('ai').LanguageModel | undefined;
+  model: import('ai').LanguageModel;
   output?: ReturnType<typeof import('ai').Output.object>;
 };
 

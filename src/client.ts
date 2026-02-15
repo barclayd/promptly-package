@@ -91,15 +91,39 @@ const createPromptMessage = (template: string): PromptMessage => {
   return fn as PromptMessage;
 };
 
+const PROVIDER_PACKAGES: Record<string, string> = {
+  anthropic: '@ai-sdk/anthropic',
+  openai: '@ai-sdk/openai',
+  google: '@ai-sdk/google',
+  mistral: '@ai-sdk/mistral',
+};
+
 const createModelResolver = (
   config?: PromptlyClientConfig,
-): ((modelId: string) => Promise<import('ai').LanguageModel | undefined>) => {
+): ((modelId: string) => Promise<import('ai').LanguageModel>) => {
   if (config?.model) {
     const userResolver = config.model;
     return async (modelId: string) => userResolver(modelId);
   }
 
-  return (modelId: string) => resolveModel(modelId);
+  return async (modelId: string) => {
+    const model = await resolveModel(modelId);
+    if (model) {
+      return model;
+    }
+
+    const providerName = detectProviderName(modelId);
+    const pkg = providerName ? PROVIDER_PACKAGES[providerName] : undefined;
+    const hint = pkg
+      ? `Make sure "${pkg}" is installed: npm install ${pkg}`
+      : `Supported model prefixes: ${PROVIDER_PREFIXES.map(([p]) => p).join(', ')}`;
+
+    throw new PromptlyError(
+      `Failed to resolve model "${modelId}". ${hint}`,
+      'BAD_REQUEST',
+      0,
+    );
+  };
 };
 
 export const createPromptlyClient = (

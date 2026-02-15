@@ -509,7 +509,7 @@ test('aiParams() resolves model automatically', async () => {
   expect((params.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
 });
 
-test('getPrompt() returns undefined model for unknown provider', async () => {
+test('getPrompt() throws for unknown provider', async () => {
   const unknownResponse: PromptResponse = {
     ...mockPromptResponse,
     config: { ...mockPromptResponse.config, model: 'llama-3-70b' },
@@ -524,7 +524,8 @@ test('getPrompt() returns undefined model for unknown provider', async () => {
   ) as unknown as typeof fetch;
 
   const client = createPromptlyClient({ apiKey: 'test-key' });
-  const result = await client.getPrompt('my-prompt');
 
-  expect(result.model).toBeUndefined();
+  await expect(client.getPrompt('my-prompt')).rejects.toThrow(
+    'Failed to resolve model "llama-3-70b"',
+  );
 });
