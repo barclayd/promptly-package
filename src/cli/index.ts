@@ -1,10 +1,19 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineCommand, runMain } from 'citty';
 import { PromptlyError } from '../errors.ts';
 import { generate } from './generate.ts';
 
-const DEFAULT_DTS_OUTPUT = './promptly-env.d.ts';
+const detectOutputPath = (): string => {
+  const candidates = ['src/types', 'types'];
+  for (const dir of candidates) {
+    const full = resolve(process.cwd(), dir);
+    if (existsSync(full)) {
+      return resolve(full, 'promptly-env.d.ts');
+    }
+  }
+  return resolve(process.cwd(), 'promptly-env.d.ts');
+};
 
 const loadEnvFile = (): void => {
   try {
@@ -79,7 +88,8 @@ const generateCommand = defineCommand({
   args: {
     output: {
       type: 'string',
-      description: 'Output path for .d.ts file (default: ./promptly-env.d.ts)',
+      description:
+        'Output path for .d.ts file (auto-detects src/types or types folder)',
       alias: 'o',
     },
     'api-key': {
@@ -98,7 +108,7 @@ const generateCommand = defineCommand({
       process.exit(1);
     }
 
-    const outputPath = args.output ?? DEFAULT_DTS_OUTPUT;
+    const outputPath = args.output ?? detectOutputPath();
 
     try {
       await generate(apiKey, outputPath);

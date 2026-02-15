@@ -8,7 +8,7 @@ export default defineConfig([
     },
     format: ['esm', 'cjs'],
     dts: true,
-    external: ['zod', 'ai'],
+    external: ['zod', 'ai', /^@ai-sdk\//],
     clean: true,
   },
   {
@@ -17,6 +17,6 @@ export default defineConfig([
     },
     format: ['esm'],
     banner: { js: '#!/usr/bin/env node' },
-    external: ['zod', 'ai'],
+    external: ['zod', 'ai', /^@ai-sdk\//],
   },
 ]);

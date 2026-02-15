@@ -50,6 +50,20 @@
     "zod": "^4.0.0",
     "ai": "^4.0 || ^5.0 || ^6.0"
   },
+  "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/mistral": {
+      "optional": true
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/barclayd/promptly-package"

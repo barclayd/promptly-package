@@ -110,6 +110,7 @@ import '@promptlycms/prompts';
 
 declare module '@promptlycms/prompts' {
   interface PromptVariableMap {
+    // v1.0.0
     'JPxlUpstuhXB5OwOtKPpj': {
       pickupLocation: string;
       items: string;

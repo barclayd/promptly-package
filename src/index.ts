@@ -1,4 +1,4 @@
-export { createPromptClient, interpolate } from './client.ts';
+export { createPromptlyClient, interpolate } from './client.ts';
 export { PromptlyError } from './errors.ts';
 export type {
   AiParams,
@@ -6,10 +6,10 @@ export type {
   ErrorCode,
   ErrorResponse,
   GetOptions,
-  PromptClient,
-  PromptClientConfig,
   PromptConfig,
   PromptId,
+  PromptlyClient,
+  PromptlyClientConfig,
   PromptMessage,
   PromptRequest,
   PromptResponse,

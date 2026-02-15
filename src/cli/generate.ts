@@ -46,6 +46,7 @@ export const generateTypeDeclaration = (prompts: PromptResponse[]): string => {
 
   for (const prompt of prompts) {
     const variables = extractTemplateVariables(prompt.userMessage);
+    lines.push(`    // v${prompt.version}`);
     if (variables.length === 0) {
       lines.push(`    '${prompt.promptId}': Record<string, never>;`);
     } else {

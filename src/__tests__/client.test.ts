@@ -1,5 +1,9 @@
 import { afterEach, expect, mock, test } from 'bun:test';
-import { createPromptClient } from '../client.ts';
+import {
+  createPromptlyClient,
+  detectProviderName,
+  resolveModel,
+} from '../client.ts';
 import { PromptlyError } from '../errors.ts';
 import type { PromptResponse } from '../types.ts';
 
@@ -63,7 +67,7 @@ const setup = (response?: PromptResponse) => {
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -75,7 +79,7 @@ const setupError = (body: Record<string, unknown>, status: number) => {
     Promise.resolve(new Response(JSON.stringify(body), { status })),
   ) as unknown as typeof fetch;
 
-  const client = createPromptClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   return { client };
 };
 
@@ -113,7 +117,7 @@ test('get() includes version query param', async () => {
 
 test('get() uses custom base URL', async () => {
   setup();
-  const client = createPromptClient({
+  const client = createPromptlyClient({
     apiKey: 'test-key',
     baseUrl: 'https://custom.api.com',
   });
@@ -274,7 +278,7 @@ const setupMulti = (responses: PromptResponse[]) => {
     );
   }) as unknown as typeof fetch;
 
-  const client = createPromptClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -331,4 +335,81 @@ test('getPrompts() passes version option per entry', async () => {
 
   expect(firstUrl).toContain('version=1.0.0');
   expect(secondUrl).toContain('version=2.0.0');
+});
+
+// --- detectProviderName() tests ---
+
+test('detectProviderName() detects anthropic from claude prefix', () => {
+  expect(detectProviderName('claude-haiku-4-5')).toBe('anthropic');
+  expect(detectProviderName('claude-sonnet-4.5')).toBe('anthropic');
+});
+
+test('detectProviderName() detects openai from gpt/o1/o3/o4/chatgpt prefixes', () => {
+  expect(detectProviderName('gpt-4o')).toBe('openai');
+  expect(detectProviderName('o1-preview')).toBe('openai');
+  expect(detectProviderName('o3-mini')).toBe('openai');
+  expect(detectProviderName('o4-mini')).toBe('openai');
+  expect(detectProviderName('chatgpt-4o-latest')).toBe('openai');
+});
+
+test('detectProviderName() detects google from gemini prefix', () => {
+  expect(detectProviderName('gemini-2.0-flash')).toBe('google');
+});
+
+test('detectProviderName() detects mistral from mistral/mixtral/codestral prefixes', () => {
+  expect(detectProviderName('mistral-large-latest')).toBe('mistral');
+  expect(detectProviderName('mixtral-8x7b')).toBe('mistral');
+  expect(detectProviderName('codestral-latest')).toBe('mistral');
+});
+
+test('detectProviderName() is case-insensitive', () => {
+  expect(detectProviderName('Claude-Haiku-4-5')).toBe('anthropic');
+  expect(detectProviderName('GPT-4o')).toBe('openai');
+});
+
+test('detectProviderName() returns undefined for unknown model', () => {
+  expect(detectProviderName('llama-3')).toBeUndefined();
+  expect(detectProviderName('unknown-model')).toBeUndefined();
+});
+
+// --- resolveModel() tests ---
+
+test('resolveModel() returns undefined for null model', async () => {
+  expect(await resolveModel(null)).toBeUndefined();
+});
+
+test('resolveModel() returns undefined for unknown prefix', async () => {
+  expect(await resolveModel('llama-3-70b')).toBeUndefined();
+});
+
+test('resolveModel() returns undefined when provider package is not installed', async () => {
+  expect(await resolveModel('claude-haiku-4-5')).toBeUndefined();
+});
+
+// --- model field on results ---
+
+test('get() includes model field (undefined when provider not installed)', async () => {
+  const { client } = setup();
+  const result = await client.get('my-prompt');
+
+  expect(result.model).toBeUndefined();
+  expect(result.config.model).toBe('claude-haiku-4.5');
+});
+
+test('aiParams() includes model field (undefined when provider not installed)', async () => {
+  const { client } = setup();
+  const params = await client.aiParams('my-prompt');
+
+  expect(params.model).toBeUndefined();
+});
+
+test('get() model is undefined when API returns null model', async () => {
+  const nullModelResponse: PromptResponse = {
+    ...mockPromptResponse,
+    config: { ...mockPromptResponse.config, model: null },
+  };
+  const { client } = setup(nullModelResponse);
+  const result = await client.get('my-prompt');
+
+  expect(result.model).toBeUndefined();
 });

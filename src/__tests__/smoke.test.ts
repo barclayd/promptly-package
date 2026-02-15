@@ -4,7 +4,7 @@ import {
   fetchAllPrompts,
   generateTypeDeclaration,
 } from '../cli/generate.ts';
-import { createPromptClient } from '../client.ts';
+import { createPromptlyClient } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
 
 const TEST_API_KEY = process.env.TEST_PROMPT_API_KEY;
@@ -12,7 +12,7 @@ const TEST_PROMPT_ID = process.env.TEST_PROMPT_ID;
 const hasEnv = Boolean(TEST_API_KEY && TEST_PROMPT_ID);
 
 const setup = () =>
-  createPromptClient({
+  createPromptlyClient({
     apiKey: TEST_API_KEY!,
   });
 
@@ -146,6 +146,7 @@ test.skipIf(!TEST_API_KEY)(
     expect(declaration).toContain('interface PromptVariableMap');
 
     for (const prompt of prompts) {
+      expect(declaration).toContain(`// v${prompt.version}`);
       expect(declaration).toContain(`'${prompt.promptId}'`);
       const vars = extractTemplateVariables(prompt.userMessage);
       for (const v of vars) {

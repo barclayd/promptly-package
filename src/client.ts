@@ -4,8 +4,8 @@ import type {
   AiParams,
   AiParamsOptions,
   GetOptions,
-  PromptClient,
-  PromptClientConfig,
+  PromptlyClient,
+  PromptlyClientConfig,
   PromptMessage,
   PromptRequest,
   PromptResponse,
@@ -13,6 +13,61 @@ import type {
 } from './types.ts';
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
+
+const PROVIDER_PREFIXES: [string, string][] = [
+  ['claude', 'anthropic'],
+  ['gpt', 'openai'],
+  ['o1', 'openai'],
+  ['o3', 'openai'],
+  ['o4', 'openai'],
+  ['chatgpt', 'openai'],
+  ['gemini', 'google'],
+  ['mistral', 'mistral'],
+  ['mixtral', 'mistral'],
+  ['codestral', 'mistral'],
+];
+
+const PROVIDER_PACKAGES: Record<string, string> = {
+  anthropic: '@ai-sdk/anthropic',
+  openai: '@ai-sdk/openai',
+  google: '@ai-sdk/google',
+  mistral: '@ai-sdk/mistral',
+};
+
+export const detectProviderName = (modelId: string): string | undefined => {
+  const lower = modelId.toLowerCase();
+  for (const [prefix, provider] of PROVIDER_PREFIXES) {
+    if (lower.startsWith(prefix)) {
+      return provider;
+    }
+  }
+  return undefined;
+};
+
+export const resolveModel = async (
+  modelId: string | null,
+): Promise<import('ai').LanguageModel | undefined> => {
+  if (!modelId) {
+    return undefined;
+  }
+
+  const providerName = detectProviderName(modelId);
+  if (!providerName) {
+    return undefined;
+  }
+
+  const pkg = PROVIDER_PACKAGES[providerName];
+  if (!pkg) {
+    return undefined;
+  }
+
+  try {
+    const mod = await import(pkg);
+    return mod[providerName](modelId);
+  } catch {
+    return undefined;
+  }
+};
 
 export const interpolate = (
   template: string,
@@ -32,9 +87,9 @@ const createPromptMessage = (template: string): PromptMessage => {
   return fn as PromptMessage;
 };
 
-export const createPromptClient = (
-  config: PromptClientConfig,
-): PromptClient => {
+export const createPromptlyClient = (
+  config: PromptlyClientConfig,
+): PromptlyClient => {
   const baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
 
   const fetchPrompt = async (
@@ -64,10 +119,12 @@ export const createPromptClient = (
     options?: GetOptions,
   ): Promise<PromptResult> => {
     const response = await fetchPrompt(promptId, options);
+    const model = await resolveModel(response.config.model);
     return {
       ...response,
       userMessage: createPromptMessage(response.userMessage),
       temperature: response.config.temperature,
+      model,
     };
   };
 
@@ -92,10 +149,13 @@ export const createPromptClient = (
       ? interpolate(prompt.userMessage, options.variables)
       : prompt.userMessage;
 
+    const model = await resolveModel(prompt.config.model);
+
     const result: AiParams = {
       system: prompt.systemMessage,
       prompt: userMessage,
       temperature: prompt.config.temperature,
+      model,
     };
 
     if (prompt.config.schema && prompt.config.schema.length > 0) {
@@ -107,5 +167,5 @@ export const createPromptClient = (
     return result;
   };
 
-  return { get, getPrompts, aiParams } as PromptClient;
+  return { get, getPrompts, aiParams } as PromptlyClient;
 };
