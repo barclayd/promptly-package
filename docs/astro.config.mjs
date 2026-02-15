@@ -5,9 +5,9 @@ export default defineConfig({
   site: 'https://docs.promptlycms.com',
   integrations: [
     starlight({
-      title: '@promptlycms/prompts',
+      title: 'PromptlyCMS',
       description:
-        'TypeScript SDK for Promptly CMS — type-safe prompts for AI applications',
+        'TypeScript SDK for Promptly CMS — type-safe prompts for AI applications made delightfully simple',
       social: [
         {
           icon: 'github',
