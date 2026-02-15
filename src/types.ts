@@ -175,7 +175,10 @@ export type AiParams = {
 };
 
 export type PromptlyClient = {
-  get: <T extends string, V extends PromptVersion<T> | 'latest' = 'latest'>(
+  getPrompt: <
+    T extends string,
+    V extends PromptVersion<T> | 'latest' = 'latest',
+  >(
     promptId: T,
     options?: GetOptions<V>,
   ) => Promise<PromptResult<VariablesFor<T, V>>>;

@@ -103,7 +103,7 @@ test('createPromptlyClient() reads API key from PROMPTLY_API_KEY env var', async
   ) as unknown as typeof fetch;
 
   const client = createPromptlyClient();
-  await client.get('my-prompt');
+  await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
     string,
@@ -138,7 +138,7 @@ test('createPromptlyClient() prefers explicit apiKey over env var', async () => 
   ) as unknown as typeof fetch;
 
   const client = createPromptlyClient({ apiKey: 'explicit-key' });
-  await client.get('my-prompt');
+  await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
     string,
@@ -147,9 +147,9 @@ test('createPromptlyClient() prefers explicit apiKey over env var', async () => 
   expect(init.headers).toEqual({ Authorization: 'Bearer explicit-key' });
 });
 
-test('get() fetches prompt with correct URL and auth header', async () => {
+test('getPrompt() fetches prompt with correct URL and auth header', async () => {
   const { client, getMockCalls } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   const [url, init] = getMockCalls()[0] as [string, RequestInit];
@@ -165,9 +165,9 @@ test('get() fetches prompt with correct URL and auth header', async () => {
   expect(result.temperature).toBe(mockPromptResponse.config.temperature);
 });
 
-test('get() includes version query param', async () => {
+test('getPrompt() includes version query param', async () => {
   const { client, getMockCalls } = setup();
-  await client.get('my-prompt', { version: '2.0.0' });
+  await client.getPrompt('my-prompt', { version: '2.0.0' });
 
   const [url] = getMockCalls()[0] as [string];
   expect(url).toBe(
@@ -175,13 +175,13 @@ test('get() includes version query param', async () => {
   );
 });
 
-test('get() uses custom base URL', async () => {
+test('getPrompt() uses custom base URL', async () => {
   setup();
   const client = createPromptlyClient({
     apiKey: 'test-key',
     baseUrl: 'https://custom.api.com',
   });
-  await client.get('my-prompt');
+  await client.getPrompt('my-prompt');
 
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
@@ -189,14 +189,14 @@ test('get() uses custom base URL', async () => {
   expect(url).toBe('https://custom.api.com/prompts/my-prompt');
 });
 
-test('get() throws PromptlyError on 401', async () => {
+test('getPrompt() throws PromptlyError on 401', async () => {
   const { client } = setupError(
     { error: 'Invalid API key', code: 'INVALID_KEY' },
     401,
   );
 
   try {
-    await client.get('my-prompt');
+    await client.getPrompt('my-prompt');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -207,14 +207,14 @@ test('get() throws PromptlyError on 401', async () => {
   }
 });
 
-test('get() throws PromptlyError on 404', async () => {
+test('getPrompt() throws PromptlyError on 404', async () => {
   const { client } = setupError(
     { error: 'Prompt not found', code: 'NOT_FOUND' },
     404,
   );
 
   try {
-    await client.get('nonexistent');
+    await client.getPrompt('nonexistent');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -224,7 +224,7 @@ test('get() throws PromptlyError on 404', async () => {
   }
 });
 
-test('get() throws PromptlyError on 429 with usage and upgradeUrl', async () => {
+test('getPrompt() throws PromptlyError on 429 with usage and upgradeUrl', async () => {
   const { client } = setupError(
     {
       error: 'Rate limit exceeded',
@@ -236,7 +236,7 @@ test('get() throws PromptlyError on 429 with usage and upgradeUrl', async () => 
   );
 
   try {
-    await client.get('my-prompt');
+    await client.getPrompt('my-prompt');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -282,26 +282,26 @@ test('aiParams() passes version option through', async () => {
   expect(url).toContain('version=1.5.0');
 });
 
-test('get() returns callable userMessage that interpolates variables', async () => {
+test('getPrompt() returns callable userMessage that interpolates variables', async () => {
   const { client } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(result.userMessage({ name: 'Alice', task: 'coding' })).toBe(
     'Hello Alice, please help with coding.',
   );
 });
 
-test('get() returns userMessage with toString() for raw template', async () => {
+test('getPrompt() returns userMessage with toString() for raw template', async () => {
   const { client } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(result.userMessage.toString()).toBe(mockPromptResponse.userMessage);
   expect(String(result.userMessage)).toBe(mockPromptResponse.userMessage);
 });
 
-test('get() returns temperature at top level', async () => {
+test('getPrompt() returns temperature at top level', async () => {
   const { client } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(result.temperature).toBe(0.7);
   expect(result.temperature).toBe(result.config.temperature);
@@ -444,9 +444,9 @@ test('resolveModel() returns undefined when provider package is not installed', 
 
 // --- model field on results ---
 
-test('get() includes model field (undefined when provider not installed)', async () => {
+test('getPrompt() includes model field (undefined when provider not installed)', async () => {
   const { client } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(result.model).toBeUndefined();
   expect(result.config.model).toBe('claude-haiku-4.5');

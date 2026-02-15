@@ -117,7 +117,7 @@ export const createPromptlyClient = (
     return response.json() as Promise<PromptResponse>;
   };
 
-  const get = async <T extends string, V extends string = 'latest'>(
+  const getPrompt = async <T extends string, V extends string = 'latest'>(
     promptId: T,
     options?: GetOptions<V>,
   ) => {
@@ -133,7 +133,9 @@ export const createPromptlyClient = (
 
   const getPrompts = async (entries: readonly PromptRequest[]) => {
     const results = await Promise.all(
-      entries.map((entry) => get(entry.promptId, { version: entry.version })),
+      entries.map((entry) =>
+        getPrompt(entry.promptId, { version: entry.version }),
+      ),
     );
     return results;
   };
@@ -165,5 +167,5 @@ export const createPromptlyClient = (
     return result;
   };
 
-  return { get, getPrompts, aiParams } as PromptlyClient;
+  return { getPrompt, getPrompts, aiParams } as PromptlyClient;
 };

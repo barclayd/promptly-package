@@ -28,9 +28,9 @@ const setupApiKey = () => {
   return apiKey;
 };
 
-test.skipIf(!hasEnv)('smoke: get() fetches a real prompt', async () => {
+test.skipIf(!hasEnv)('smoke: getPrompt() fetches a real prompt', async () => {
   const { client, promptId } = setupWithEnv();
-  const result = await client.get(promptId);
+  const result = await client.getPrompt(promptId);
 
   expect(result.promptId).toBe(promptId);
   expect(typeof result.systemMessage).toBe('string');
@@ -39,10 +39,10 @@ test.skipIf(!hasEnv)('smoke: get() fetches a real prompt', async () => {
 });
 
 test.skipIf(!hasEnv)(
-  'smoke: get() userMessage interpolates variables',
+  'smoke: getPrompt() userMessage interpolates variables',
   async () => {
     const { client, promptId } = setupWithEnv();
-    const result = await client.get(promptId);
+    const result = await client.getPrompt(promptId);
 
     const template = String(result.userMessage);
     expect(typeof template).toBe('string');
@@ -88,13 +88,13 @@ test.skipIf(!hasEnv)('smoke: aiParams() returns AI SDK params', async () => {
 });
 
 test.skipIf(!TEST_API_KEY)(
-  'smoke: get() throws PromptlyError for nonexistent prompt',
+  'smoke: getPrompt() throws PromptlyError for nonexistent prompt',
   async () => {
     const apiKey = setupApiKey();
     const client = createPromptlyClient({ apiKey });
 
     try {
-      await client.get('nonexistent-id-xxx');
+      await client.getPrompt('nonexistent-id-xxx');
       expect.unreachable('Expected PromptlyError to be thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(PromptlyError);
