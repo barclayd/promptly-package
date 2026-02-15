@@ -1,4 +1,4 @@
-import { createErrorFromResponse } from './errors.ts';
+import { createErrorFromResponse, PromptlyError } from './errors.ts';
 import { buildZodSchema } from './schema/builder.ts';
 import type {
   AiParams,
@@ -83,9 +83,17 @@ const createPromptMessage = (template: string): PromptMessage => {
 };
 
 export const createPromptlyClient = (
-  config: PromptlyClientConfig,
+  config?: PromptlyClientConfig,
 ): PromptlyClient => {
-  const baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
+  const apiKey = config?.apiKey ?? process.env.PROMPTLY_API_KEY;
+  if (!apiKey) {
+    throw new PromptlyError(
+      'Missing API key. Pass { apiKey } to createPromptlyClient() or set PROMPTLY_API_KEY environment variable.',
+      'UNAUTHORIZED',
+      0,
+    );
+  }
+  const baseUrl = config?.baseUrl ?? DEFAULT_BASE_URL;
 
   const fetchPrompt = async (
     promptId: string,
@@ -98,7 +106,7 @@ export const createPromptlyClient = (
 
     const response = await fetch(url.toString(), {
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
     });
 

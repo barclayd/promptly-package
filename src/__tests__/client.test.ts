@@ -55,6 +55,7 @@ const mockPromptWithSchema: PromptResponse = {
 };
 
 const originalFetch = globalThis.fetch;
+const originalEnvKey = process.env.PROMPTLY_API_KEY;
 
 const setup = (response?: PromptResponse) => {
   const data = response ?? mockPromptResponse;
@@ -85,6 +86,65 @@ const setupError = (body: Record<string, unknown>, status: number) => {
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  process.env.PROMPTLY_API_KEY = originalEnvKey;
+});
+
+// --- createPromptlyClient() API key resolution tests ---
+
+test('createPromptlyClient() reads API key from PROMPTLY_API_KEY env var', async () => {
+  process.env.PROMPTLY_API_KEY = 'env-test-key';
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient();
+  await client.get('my-prompt');
+
+  const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
+    string,
+    RequestInit,
+  ];
+  expect(init.headers).toEqual({ Authorization: 'Bearer env-test-key' });
+});
+
+test('createPromptlyClient() throws when no API key provided', () => {
+  delete process.env.PROMPTLY_API_KEY;
+
+  expect(() => createPromptlyClient()).toThrow(PromptlyError);
+  try {
+    createPromptlyClient();
+  } catch (err) {
+    const e = err as PromptlyError;
+    expect(e.code).toBe('UNAUTHORIZED');
+    expect(e.status).toBe(0);
+    expect(e.message).toContain('Missing API key');
+  }
+});
+
+test('createPromptlyClient() prefers explicit apiKey over env var', async () => {
+  process.env.PROMPTLY_API_KEY = 'env-key';
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'explicit-key' });
+  await client.get('my-prompt');
+
+  const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
+    string,
+    RequestInit,
+  ];
+  expect(init.headers).toEqual({ Authorization: 'Bearer explicit-key' });
 });
 
 test('get() fetches prompt with correct URL and auth header', async () => {

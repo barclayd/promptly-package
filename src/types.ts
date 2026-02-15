@@ -153,7 +153,7 @@ export type ErrorResponse = {
 // --- Client types ---
 
 export type PromptlyClientConfig = {
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
 };
 
