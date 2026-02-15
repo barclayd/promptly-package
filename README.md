@@ -2,15 +2,33 @@
 
 TypeScript SDK for the [Promptly CMS](https://promptlycms.com) API. Fetch prompts at runtime, get typed template variables via codegen, and integrate with the [Vercel AI SDK](https://sdk.vercel.ai).
 
+- **Runtime client** — `getPrompt()`, `getPrompts()`, `aiParams()` with full TypeScript support
+- **Codegen CLI** — generates typed template variables via declaration merging
+- **AI SDK integration** — spread-ready params for `generateText` / `streamText`
+- **Model auto-detection** — resolves Anthropic, OpenAI, Google, and Mistral models automatically
+- **Structured output** — Zod schemas built from CMS-defined output schemas
+
 ## Install
 
 ```bash
 npm install @promptlycms/prompts
-# or
-bun add @promptlycms/prompts
 ```
 
-Peer dependencies: `zod@^4`, `ai@^4 || ^5 || ^6`, `typescript@^5`
+Peer dependencies:
+
+```bash
+npm install zod ai typescript
+```
+
+You'll also need at least one AI provider SDK for model resolution:
+
+```bash
+# Install the provider(s) your prompts use
+npm install @ai-sdk/anthropic  # Claude models
+npm install @ai-sdk/openai     # GPT / o-series models
+npm install @ai-sdk/google     # Gemini models
+npm install @ai-sdk/mistral    # Mistral / Mixtral models
+```
 
 ## Quick start
 
@@ -27,7 +45,7 @@ PROMPTLY_API_KEY=pk_live_...
 npx promptly generate
 ```
 
-This fetches all your prompts from the API and generates a `promptly-env.d.ts` file in your project root. This gives you typed autocomplete on `userMessage()` variables for every prompt ID.
+This fetches all your prompts from the API and generates a `promptly-env.d.ts` file in your project root with typed autocomplete for every prompt ID and its template variables.
 
 ```bash
 # Custom output path
@@ -40,9 +58,9 @@ npx promptly generate --api-key pk_live_...
 ### 3. Create a client
 
 ```typescript
-import { createPromptClient } from '@promptlycms/prompts';
+import { createPromptlyClient } from '@promptlycms/prompts';
 
-const promptly = createPromptClient({
+const promptly = createPromptlyClient({
   apiKey: process.env.PROMPTLY_API_KEY,
 });
 ```
@@ -52,13 +70,14 @@ const promptly = createPromptClient({
 ### Single prompt
 
 ```typescript
-const result = await promptly.get('JPxlUpstuhXB5OwOtKPpj');
+const result = await promptly.getPrompt('JPxlUpstuhXB5OwOtKPpj');
 
 // Access prompt metadata
 result.promptId;      // 'JPxlUpstuhXB5OwOtKPpj'
 result.promptName;    // 'Review Prompt'
 result.systemMessage; // 'You are a helpful assistant.'
 result.temperature;   // 0.7
+result.model;         // LanguageModel (auto-resolved from CMS config)
 
 // Interpolate template variables (typed if you ran codegen)
 const message = result.userMessage({
@@ -74,7 +93,7 @@ const template = String(result.userMessage);
 Fetch a specific version:
 
 ```typescript
-const result = await promptly.get('JPxlUpstuhXB5OwOtKPpj', {
+const result = await promptly.getPrompt('JPxlUpstuhXB5OwOtKPpj', {
   version: '2.0.0',
 });
 ```
@@ -102,23 +121,48 @@ welcomePrompt.userMessage({ email: 'a@b.com', subject: 'Hi' });
 
 ```typescript
 import { generateText } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
 
 const params = await promptly.aiParams('my-prompt', {
   variables: { name: 'Alice', task: 'coding' },
 });
 
 const { text } = await generateText({
-  model: anthropic('claude-sonnet-4-5-20250929'),
   ...params,
+  // model is already included from your CMS prompt config
 });
 ```
 
-If the prompt has a structured output schema defined in the CMS, `params.output` is automatically populated with a Zod schema wrapped in `Output.object()`.
+The model configured in the CMS is auto-resolved to the correct AI SDK provider. If the prompt has a structured output schema defined in the CMS, `params.output` is automatically populated with a Zod schema wrapped in `Output.object()`.
+
+## Model auto-detection
+
+The SDK automatically resolves models configured in the CMS to the correct AI SDK provider based on the model name prefix:
+
+| Prefix | Provider | Package |
+|--------|----------|---------|
+| `claude-*` | Anthropic | `@ai-sdk/anthropic` |
+| `gpt-*`, `o1-*`, `o3-*`, `o4-*`, `chatgpt-*` | OpenAI | `@ai-sdk/openai` |
+| `gemini-*` | Google | `@ai-sdk/google` |
+| `mistral-*`, `mixtral-*`, `codestral-*` | Mistral | `@ai-sdk/mistral` |
+
+CMS model display names (e.g. `claude-sonnet-4.5`) are mapped to their full API model IDs automatically.
+
+### Custom model resolver
+
+If you need full control over model resolution, pass a `model` function:
+
+```typescript
+import { anthropic } from '@ai-sdk/anthropic';
+
+const promptly = createPromptlyClient({
+  apiKey: process.env.PROMPTLY_API_KEY,
+  model: (modelId) => anthropic('claude-sonnet-4-5-20250929'),
+});
+```
 
 ## Type generation
 
-Running `npx promptly generate` creates a `promptly-env.d.ts` file that uses [declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html) to narrow types:
+Running `npx promptly generate` creates a `promptly-env.d.ts` file that uses [declaration merging](https://www.typescriptlang.org/docs/handbook/declaration-merging.html) to type your prompts:
 
 ```typescript
 // Auto-generated by @promptlycms/prompts — do not edit
@@ -127,26 +171,24 @@ import '@promptlycms/prompts';
 declare module '@promptlycms/prompts' {
   interface PromptVariableMap {
     'JPxlUpstuhXB5OwOtKPpj': {
-      pickupLocation: string;
-      items: string;
+      [V in 'latest' | '2.0.0' | '1.0.0']: {
+        pickupLocation: string;
+        items: string;
+      };
     };
     'abc123': {
-      email: string;
-      subject: string;
+      [V in 'latest' | '1.0.0']: {
+        email: string;
+        subject: string;
+      };
     };
   }
 }
 ```
 
-With this file present, `get()` and `getPrompts()` return typed `userMessage` functions with autocomplete. Unknown prompt IDs fall back to `Record<string, string>`.
+With this file present, `getPrompt()` and `getPrompts()` return typed `userMessage` functions with autocomplete. Unknown prompt IDs fall back to `Record<string, string>`.
 
-Add the generated file to version control so types are available without running codegen in CI:
-
-```bash
-# .gitignore — do NOT ignore promptly-env.d.ts
-```
-
-Re-run `npx promptly generate` whenever you add, remove, or rename template variables in the CMS.
+Add the generated file to version control so types are available without running codegen in CI. Re-run `npx promptly generate` whenever you add, remove, or rename template variables in the CMS.
 
 ## Error handling
 
@@ -156,7 +198,7 @@ All API errors throw `PromptlyError`:
 import { PromptlyError } from '@promptlycms/prompts';
 
 try {
-  await promptly.get('nonexistent');
+  await promptly.getPrompt('nonexistent');
 } catch (err) {
   if (err instanceof PromptlyError) {
     err.code;       // 'NOT_FOUND' | 'INVALID_KEY' | 'USAGE_LIMIT_EXCEEDED' | ...
@@ -170,18 +212,23 @@ try {
 
 ## API reference
 
-### `createPromptClient(config)`
+### `createPromptlyClient(config?)`
 
 | Option    | Type     | Required | Description                                        |
 |-----------|----------|----------|----------------------------------------------------|
-| `apiKey`  | `string` | Yes      | Your Promptly CMS API key                          |
+| `apiKey`  | `string` | No       | Your Promptly API key (defaults to `PROMPTLY_API_KEY` env var) |
 | `baseUrl` | `string` | No       | API base URL (default: `https://api.promptlycms.com`) |
+| `model`   | `(modelId: string) => LanguageModel` | No | Custom model resolver — overrides auto-detection |
 
-Returns a `PromptClient` with `get()`, `getPrompts()`, and `aiParams()` methods.
+Returns a `PromptlyClient` with `getPrompt()`, `getPrompts()`, and `aiParams()` methods.
 
-### `client.get(promptId, options?)`
+### `client.getPrompt(promptId, options?)`
 
 Fetch a single prompt. Returns `PromptResult` with typed `userMessage` when codegen types are present.
+
+| Option    | Type     | Description          |
+|-----------|----------|----------------------|
+| `version` | `string` | Specific version to fetch (default: latest) |
 
 ### `client.getPrompts(entries)`
 
@@ -189,7 +236,23 @@ Fetch multiple prompts in parallel. Accepts `PromptRequest[]` and returns a type
 
 ### `client.aiParams(promptId, options?)`
 
-Fetch a prompt and return params ready to spread into AI SDK functions (`system`, `prompt`, `temperature`, and optionally `output`).
+Fetch a prompt and return params ready to spread into AI SDK functions (`system`, `prompt`, `temperature`, `model`, and optionally `output`).
+
+| Option      | Type                    | Description                    |
+|-------------|-------------------------|--------------------------------|
+| `version`   | `string`                | Specific version to fetch      |
+| `variables` | `Record<string, string>` | Template variables to interpolate |
+
+### `@promptlycms/prompts/schema`
+
+Subpath export for working with Zod schemas from CMS schema fields:
+
+```typescript
+import { buildZodSchema, schemaFieldsToZodSource } from '@promptlycms/prompts/schema';
+```
+
+- `buildZodSchema(fields)` — builds a Zod object schema at runtime from `SchemaField[]`
+- `schemaFieldsToZodSource(fields)` — generates Zod source code as a string for codegen
 
 ### CLI: `npx promptly generate`
 
@@ -197,3 +260,7 @@ Fetch a prompt and return params ready to spread into AI SDK functions (`system`
 |-------------|-------|------------------------------------------------------|
 | `--api-key` |       | API key (defaults to `PROMPTLY_API_KEY` env var)     |
 | `--output`  | `-o`  | Output path (default: `./promptly-env.d.ts`)         |
+
+## License
+
+MIT
