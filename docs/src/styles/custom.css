@@ -1,3 +1,4 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: required to override Starlight's high-specificity built-in hero layout styles */
 /*
  * PromptlyCMS brand palette mapped onto Starlight CSS variables.
  *
@@ -118,15 +119,23 @@
   margin-block-start: 1.5rem;
 }
 
-:root[data-theme='light'] {
+:root[data-theme="light"] {
   /*
    * Accent — app's color-mix(in oklab, var(--primary) 90%, transparent)
    * where --primary = oklch(20.8% .042 265.755) ≈ hsl(248, 30%, 15%)
    * At 90% over white ≈ hsl(248, 25%, 22%)
    */
   --sl-color-accent-low: hsl(248, 20%, 94%);
-  --sl-color-accent: color-mix(in oklab, oklch(20.8% .042 265.755) 90%, transparent);
-  --sl-color-accent-high: color-mix(in oklab, oklch(20.8% .042 265.755) 90%, transparent);
+  --sl-color-accent: color-mix(
+    in oklab,
+    oklch(20.8% 0.042 265.755) 90%,
+    transparent
+  );
+  --sl-color-accent-high: color-mix(
+    in oklab,
+    oklch(20.8% 0.042 265.755) 90%,
+    transparent
+  );
 
   /* Base colors — white bg matching app's oklch(100% 0 0) */
   --sl-color-white: hsl(248, 20%, 10%);
@@ -139,7 +148,11 @@
   --sl-color-gray-4: hsl(250, 4%, 72%);
   --sl-color-gray-5: hsl(250, 6%, 92%);
   --sl-color-gray-6: hsl(250, 10%, 96%);
-  --sl-color-gray-7: hsl(248, 5%, 98%); /* app sidebar: oklch(98.4% .003 247.858) */
+  --sl-color-gray-7: hsl(
+    248,
+    5%,
+    98%
+  ); /* app sidebar: oklch(98.4% .003 247.858) */
 
   /* Purple → blue for light mode */
   --sl-color-purple-low: hsl(225, 70%, 92%);
@@ -150,7 +163,9 @@
   --sl-color-text-accent: var(--sl-color-accent);
   --sl-color-text-invert: var(--sl-color-black);
   --sl-color-bg-nav: var(--sl-color-gray-7);
-  --sl-color-bg-sidebar: var(--sl-color-gray-7); /* off-white sidebar like the app */
+  --sl-color-bg-sidebar: var(
+    --sl-color-gray-7
+  ); /* off-white sidebar like the app */
   --sl-color-bg-inline-code: var(--sl-color-gray-6);
   --sl-color-bg-accent: var(--sl-color-accent);
   --sl-color-hairline-light: var(--sl-color-gray-6);

@@ -39,8 +39,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl:
-          'https://github.com/barclayd/promptly-package/edit/main/docs/',
+        baseUrl: 'https://github.com/barclayd/promptly-package/edit/main/docs/',
       },
       customCss: ['./src/styles/custom.css'],
       head: [
