@@ -83,6 +83,15 @@ export default defineConfig({
           ],
         },
         {
+          label: 'API',
+          items: [
+            { label: 'Overview', slug: 'api/overview' },
+            { label: 'Endpoints', slug: 'api/endpoints' },
+            { label: 'Rate Limits', slug: 'api/rate-limits' },
+            { label: 'Errors', slug: 'api/errors' },
+          ],
+        },
+        {
           label: 'Reference',
           items: [
             { label: 'Client API', slug: 'reference/client-api' },

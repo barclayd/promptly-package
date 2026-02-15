@@ -1,0 +1,103 @@
+---
+title: API Overview
+description: Authenticate and make your first request to the Promptly CMS REST API.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+The Promptly REST API lets you fetch prompts directly over HTTP - no SDK required. Use it from any language or tool that can make HTTP requests.
+
+## Base URL
+
+All API requests use the following base URL:
+
+```
+https://api.promptlycms.com
+```
+
+## Authentication
+
+Authenticate every request with a Bearer token in the `Authorization` header. Get your API key from the [Promptly CMS dashboard](https://app.promptlycms.com/settings?apiKeys).
+
+```
+Authorization: Bearer pk_live_...
+```
+
+## Quick start
+
+<Steps>
+
+1. **Get your API key**
+
+   Copy your API key from the [dashboard settings](https://app.promptlycms.com/settings?apiKeys).
+
+2. **Make your first request**
+
+   <Tabs>
+     <TabItem label="curl">
+     ```bash
+     curl https://api.promptlycms.com/prompts/your-prompt-id \
+       -H "Authorization: Bearer pk_live_..."
+     ```
+     </TabItem>
+     <TabItem label="fetch">
+     ```typescript
+     const response = await fetch(
+       'https://api.promptlycms.com/prompts/your-prompt-id',
+       {
+         headers: {
+           Authorization: 'Bearer pk_live_...',
+         },
+       },
+     );
+     const prompt = await response.json();
+     ```
+     </TabItem>
+   </Tabs>
+
+3. **Use the response**
+
+   The API returns JSON with the prompt content, model configuration, and template variables:
+
+   ```json
+   {
+     "promptId": "your-prompt-id",
+     "promptName": "My Prompt",
+     "version": "1.0.0",
+     "systemMessage": "You are a helpful assistant.",
+     "userMessage": "Help ${name} with ${task}.",
+     "config": {
+       "model": "claude-sonnet-4.5",
+       "temperature": 0.7,
+       "schema": [],
+       "inputData": null,
+       "inputDataRootName": null
+     }
+   }
+   ```
+
+</Steps>
+
+## CORS
+
+The API supports CORS for all origins. Only `GET` and `OPTIONS` methods are allowed - the API is read-only.
+
+## REST API vs SDK
+
+| | REST API | TypeScript SDK |
+|---|---|---|
+| **Language** | Any | TypeScript/JavaScript |
+| **Type safety** | Manual | Automatic (with codegen) |
+| **Model resolution** | Manual | Automatic (AI SDK models) |
+| **Template interpolation** | Manual string replacement | Built-in `userMessage()` function |
+| **Best for** | Non-TypeScript apps, debugging, scripting | TypeScript apps with AI SDK |
+
+<Aside type="tip">
+  If you're building a TypeScript application, the [SDK](/getting-started/quick-start/) handles authentication, model resolution, and template interpolation automatically.
+</Aside>
+
+## Next steps
+
+- [Endpoints](/api/endpoints/) - full reference for all API endpoints
+- [Rate Limits](/api/rate-limits/) - usage quotas and rate limit headers
+- [Errors](/api/errors/) - error codes and troubleshooting
