@@ -293,7 +293,7 @@ test('schemaFieldsToZodSource: generates ip with version', () => {
     }),
   ]);
 
-  expect(source).toContain(".ip({ version: 'v4' })");
+  expect(source).toContain('.ipv4()');
 });
 
 test('schemaFieldsToZodSource: generates complex multi-field schema', () => {

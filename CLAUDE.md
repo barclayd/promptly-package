@@ -112,7 +112,9 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## Project
 
-This is `@promptly/prompts` — a TypeScript SDK for the Promptly CMS API. It provides a runtime client for fetching prompts and a codegen CLI for generating typed Zod schemas.
+This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides:
+- A **runtime client** for fetching prompts (`get`, `getPrompts`, `aiParams`)
+- A **codegen CLI** that generates `promptly-env.d.ts` with typed template variables via declaration merging
 
 ### Key scripts
 
@@ -124,18 +126,34 @@ This is `@promptly/prompts` — a TypeScript SDK for the Promptly CMS API. It pr
 
 ### Project structure
 
-- `src/client.ts` — runtime client (`createPromptClient`) with `get()` and `aiParams()` methods
+- `src/client.ts` — runtime client (`createPromptClient`) with `get()`, `getPrompts()`, and `aiParams()` methods
 - `src/schema/builder.ts` — builds Zod schemas from `SchemaField[]` at runtime
 - `src/schema/codegen.ts` — generates Zod source code strings from `SchemaField[]`
 - `src/errors.ts` — `PromptlyError` class with `code`, `status`, `usage`, `upgradeUrl`
-- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, etc.)
+- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, `PromptVariableMap`, etc.)
+- `src/cli/generate.ts` — codegen: `fetchAllPrompts()`, `generateTypeDeclaration()`, `generate()`
+- `src/cli/index.ts` — CLI entry point (`promptly generate` command)
 - `src/__tests__/` — flat test files (no `describe` nesting)
+
+### Type system architecture
+
+Uses **declaration merging** (Prisma/GraphQL Code Generator pattern):
+- `PromptVariableMap` — empty interface in `src/types.ts`, augmented by generated `promptly-env.d.ts`
+- `PromptId` — `keyof PromptVariableMap | (string & {})` for autocomplete with fallback
+- `VariablesFor<Id>` — conditional type that narrows to typed variables for known IDs, falls back to `Record<string, string>`
+- `PromptMessage<V>` / `PromptResult<V>` — generic types with `Record<string, string>` defaults
+- `GetPromptsResults<T>` — mapped tuple type for batch `getPrompts()` that types each position
+- `PromptVariableMap` must remain an `interface` (not `type`) for declaration merging to work
+
+### Codegen flow
+
+`npx promptly generate` reads `PROMPTLY_API_KEY` from env (or `--api-key` flag), calls `GET /prompts` to fetch all prompts, extracts `${var}` template variables from `userMessage`, and writes `promptly-env.d.ts` with module augmentation. No config file needed.
 
 ### Dependencies
 
-- **Runtime:** citty, jiti
-- **Peer:** zod ^3.23, ai ^4.0, typescript ^5
-- **Dev:** @biomejs/biome, @types/bun, @typescript/native-preview, tsup
+- **Runtime:** citty
+- **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5
+- **Dev:** @biomejs/biome, @changesets/cli, @changesets/changelog-github, @types/bun, @typescript/native-preview, tsup
 
 ## Code style
 
@@ -160,3 +178,22 @@ Follow Kent C. Dodds' "Avoid Nesting When You're Testing":
 
 GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`):
 checkout → setup Bun (`oven-sh/setup-bun@v2`) → `bun install --frozen-lockfile` → types → lint → test → build
+
+## Releasing
+
+Uses [Changesets](https://github.com/changesets/changesets) for versioning and npm publishing (`.github/workflows/release.yml`).
+
+### Adding a changeset
+
+When making a user-facing change, run `bunx changeset` and follow the prompts to select a semver bump (patch/minor/major) and describe the change. This creates a markdown file in `.changeset/` that gets consumed at release time.
+
+### How releases work
+
+- **On PR:** A canary version (`x.y.z-canary.<sha>`) is published to npm under the `canary` tag. A sticky PR comment shows the install command.
+- **On merge to main:** The `changesets/action` either:
+  - Creates/updates a "Version Packages" PR that bumps versions and updates CHANGELOG
+  - Publishes to npm if the "Version Packages" PR was just merged
+
+### npm authentication
+
+Uses OIDC trusted publishing — no `NPM_TOKEN` secret needed. Requires a trusted publisher connection configured on npmjs.com for the `@promptlycms/prompts` package pointing to the `release.yml` workflow in `barclayd/promptly-package`.

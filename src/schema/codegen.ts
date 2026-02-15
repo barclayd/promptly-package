@@ -86,10 +86,10 @@ const VALIDATION_SOURCE_MAP = new Map<
     'ip',
     (_r, f) => {
       const version = f.params.stringOptions?.ip?.version;
-      if (!version) {
-        return '.ip()';
+      if (version === 'v6') {
+        return '.ipv6()';
       }
-      return `.ip({ version: '${version}' })`;
+      return '.ipv4()';
     },
   ],
   ['trim', () => '.trim()'],

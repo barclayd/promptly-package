@@ -134,9 +134,9 @@ const TYPE_BUILDERS = new Map<string, (field: SchemaField) => z.ZodTypeAny>([
         );
         return z.discriminatedUnion(
           discriminator,
-          schemas as [
-            z.ZodDiscriminatedUnionOption<string>,
-            ...z.ZodDiscriminatedUnionOption<string>[],
+          schemas as unknown as [
+            z.ZodObject<z.ZodRawShape>,
+            ...z.ZodObject<z.ZodRawShape>[],
           ],
         );
       }
@@ -250,7 +250,10 @@ const VALIDATION_APPLICATORS = new Map<string, ValidationApplicator>([
         return s;
       }
       const version = f.params.stringOptions?.ip?.version;
-      return s.ip({ version });
+      if (version === 'v6') {
+        return s.ipv6();
+      }
+      return s.ipv4();
     },
   ],
 

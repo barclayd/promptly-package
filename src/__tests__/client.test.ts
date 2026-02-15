@@ -1,5 +1,9 @@
 import { afterEach, expect, mock, test } from 'bun:test';
-import { createPromptClient } from '../client.ts';
+import {
+  createPromptlyClient,
+  detectProviderName,
+  resolveModel,
+} from '../client.ts';
 import { PromptlyError } from '../errors.ts';
 import type { PromptResponse } from '../types.ts';
 
@@ -10,7 +14,8 @@ const mockPromptResponse: PromptResponse = {
   promptName: 'Test Prompt',
   version: '1.0.0',
   systemMessage: 'You are a helpful assistant.',
-  userMessage: 'Hello {{name}}, please help with {{task}}.',
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  userMessage: 'Hello ${name}, please help with ${task}.',
   config: {
     model: 'claude-haiku-4.5',
     temperature: 0.7,
@@ -50,6 +55,7 @@ const mockPromptWithSchema: PromptResponse = {
 };
 
 const originalFetch = globalThis.fetch;
+const originalEnvKey = process.env.PROMPTLY_API_KEY;
 
 const setup = (response?: PromptResponse) => {
   const data = response ?? mockPromptResponse;
@@ -62,7 +68,7 @@ const setup = (response?: PromptResponse) => {
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -74,17 +80,76 @@ const setupError = (body: Record<string, unknown>, status: number) => {
     Promise.resolve(new Response(JSON.stringify(body), { status })),
   ) as unknown as typeof fetch;
 
-  const client = createPromptClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   return { client };
 };
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  process.env.PROMPTLY_API_KEY = originalEnvKey;
 });
 
-test('get() fetches prompt with correct URL and auth header', async () => {
+// --- createPromptlyClient() API key resolution tests ---
+
+test('createPromptlyClient() reads API key from PROMPTLY_API_KEY env var', async () => {
+  process.env.PROMPTLY_API_KEY = 'env-test-key';
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient();
+  await client.getPrompt('my-prompt');
+
+  const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
+    string,
+    RequestInit,
+  ];
+  expect(init.headers).toEqual({ Authorization: 'Bearer env-test-key' });
+});
+
+test('createPromptlyClient() throws when no API key provided', () => {
+  delete process.env.PROMPTLY_API_KEY;
+
+  expect(() => createPromptlyClient()).toThrow(PromptlyError);
+  try {
+    createPromptlyClient();
+  } catch (err) {
+    const e = err as PromptlyError;
+    expect(e.code).toBe('UNAUTHORIZED');
+    expect(e.status).toBe(0);
+    expect(e.message).toContain('Missing API key');
+  }
+});
+
+test('createPromptlyClient() prefers explicit apiKey over env var', async () => {
+  process.env.PROMPTLY_API_KEY = 'env-key';
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'explicit-key' });
+  await client.getPrompt('my-prompt');
+
+  const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
+    string,
+    RequestInit,
+  ];
+  expect(init.headers).toEqual({ Authorization: 'Bearer explicit-key' });
+});
+
+test('getPrompt() fetches prompt with correct URL and auth header', async () => {
   const { client, getMockCalls } = setup();
-  const result = await client.get('my-prompt');
+  const result = await client.getPrompt('my-prompt');
 
   expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   const [url, init] = getMockCalls()[0] as [string, RequestInit];
@@ -93,12 +158,16 @@ test('get() fetches prompt with correct URL and auth header', async () => {
   expect(init.headers).toEqual({
     Authorization: 'Bearer test-key',
   });
-  expect(result).toEqual(mockPromptResponse);
+  expect(result.promptId).toBe(mockPromptResponse.promptId);
+  expect(result.systemMessage).toBe(mockPromptResponse.systemMessage);
+  expect(String(result.userMessage)).toBe(mockPromptResponse.userMessage);
+  expect(result.config).toEqual(mockPromptResponse.config);
+  expect(result.temperature).toBe(mockPromptResponse.config.temperature);
 });
 
-test('get() includes version query param', async () => {
+test('getPrompt() includes version query param', async () => {
   const { client, getMockCalls } = setup();
-  await client.get('my-prompt', { version: '2.0.0' });
+  await client.getPrompt('my-prompt', { version: '2.0.0' });
 
   const [url] = getMockCalls()[0] as [string];
   expect(url).toBe(
@@ -106,13 +175,13 @@ test('get() includes version query param', async () => {
   );
 });
 
-test('get() uses custom base URL', async () => {
+test('getPrompt() uses custom base URL', async () => {
   setup();
-  const client = createPromptClient({
+  const client = createPromptlyClient({
     apiKey: 'test-key',
     baseUrl: 'https://custom.api.com',
   });
-  await client.get('my-prompt');
+  await client.getPrompt('my-prompt');
 
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
@@ -120,14 +189,14 @@ test('get() uses custom base URL', async () => {
   expect(url).toBe('https://custom.api.com/prompts/my-prompt');
 });
 
-test('get() throws PromptlyError on 401', async () => {
+test('getPrompt() throws PromptlyError on 401', async () => {
   const { client } = setupError(
     { error: 'Invalid API key', code: 'INVALID_KEY' },
     401,
   );
 
   try {
-    await client.get('my-prompt');
+    await client.getPrompt('my-prompt');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -138,14 +207,14 @@ test('get() throws PromptlyError on 401', async () => {
   }
 });
 
-test('get() throws PromptlyError on 404', async () => {
+test('getPrompt() throws PromptlyError on 404', async () => {
   const { client } = setupError(
     { error: 'Prompt not found', code: 'NOT_FOUND' },
     404,
   );
 
   try {
-    await client.get('nonexistent');
+    await client.getPrompt('nonexistent');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -155,7 +224,7 @@ test('get() throws PromptlyError on 404', async () => {
   }
 });
 
-test('get() throws PromptlyError on 429 with usage and upgradeUrl', async () => {
+test('getPrompt() throws PromptlyError on 429 with usage and upgradeUrl', async () => {
   const { client } = setupError(
     {
       error: 'Rate limit exceeded',
@@ -167,7 +236,7 @@ test('get() throws PromptlyError on 429 with usage and upgradeUrl', async () => 
   );
 
   try {
-    await client.get('my-prompt');
+    await client.getPrompt('my-prompt');
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -184,7 +253,7 @@ test('aiParams() returns system, prompt, and temperature', async () => {
   const params = await client.aiParams('my-prompt');
 
   expect(params.system).toBe('You are a helpful assistant.');
-  expect(params.prompt).toBe('Hello {{name}}, please help with {{task}}.');
+  expect(params.prompt).toBe(mockPromptResponse.userMessage);
   expect(params.temperature).toBe(0.7);
   expect(params.output).toBeUndefined();
 });
@@ -211,4 +280,181 @@ test('aiParams() passes version option through', async () => {
 
   const [url] = getMockCalls()[0] as [string];
   expect(url).toContain('version=1.5.0');
+});
+
+test('getPrompt() returns callable userMessage that interpolates variables', async () => {
+  const { client } = setup();
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.userMessage({ name: 'Alice', task: 'coding' })).toBe(
+    'Hello Alice, please help with coding.',
+  );
+});
+
+test('getPrompt() returns userMessage with toString() for raw template', async () => {
+  const { client } = setup();
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.userMessage.toString()).toBe(mockPromptResponse.userMessage);
+  expect(String(result.userMessage)).toBe(mockPromptResponse.userMessage);
+});
+
+test('getPrompt() returns temperature at top level', async () => {
+  const { client } = setup();
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.temperature).toBe(0.7);
+  expect(result.temperature).toBe(result.config.temperature);
+});
+
+// --- getPrompts() tests ---
+
+const mockSecondPromptResponse: PromptResponse = {
+  promptId: 'second-id-456',
+  promptName: 'Second Prompt',
+  version: '2.0.0',
+  systemMessage: 'You are a second assistant.',
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  userMessage: 'Email to ${email} about ${subject}.',
+  config: {
+    model: 'claude-sonnet-4.5',
+    temperature: 0.5,
+    schema: [],
+    inputData: null,
+    inputDataRootName: null,
+  },
+};
+
+const setupMulti = (responses: PromptResponse[]) => {
+  let callIndex = 0;
+  globalThis.fetch = mock(() => {
+    const data = responses[callIndex] ?? responses[0];
+    callIndex++;
+    return Promise.resolve(
+      new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+  }) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const getMockCalls = (): unknown[][] =>
+    (globalThis.fetch as unknown as MockFetch).mock.calls;
+
+  return { client, getMockCalls };
+};
+
+test('getPrompts() fetches multiple prompts in parallel', async () => {
+  const { client } = setupMulti([mockPromptResponse, mockSecondPromptResponse]);
+
+  const results = await client.getPrompts([
+    { promptId: 'test-id-123' },
+    { promptId: 'second-id-456' },
+  ]);
+
+  expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  expect(results).toHaveLength(2);
+});
+
+test('getPrompts() returns results in same order as input', async () => {
+  const { client } = setupMulti([mockPromptResponse, mockSecondPromptResponse]);
+
+  const [first, second] = await client.getPrompts([
+    { promptId: 'test-id-123' },
+    { promptId: 'second-id-456' },
+  ]);
+
+  expect(first.promptId).toBe('test-id-123');
+  expect(first.temperature).toBe(0.7);
+  expect(typeof first.userMessage).toBe('function');
+  expect(first.userMessage({ name: 'Alice', task: 'coding' })).toBe(
+    'Hello Alice, please help with coding.',
+  );
+
+  expect(second.promptId).toBe('second-id-456');
+  expect(second.temperature).toBe(0.5);
+  expect(second.userMessage({ email: 'a@b.com', subject: 'Hi' })).toBe(
+    'Email to a@b.com about Hi.',
+  );
+});
+
+test('getPrompts() passes version option per entry', async () => {
+  const { client, getMockCalls } = setupMulti([
+    mockPromptResponse,
+    mockSecondPromptResponse,
+  ]);
+
+  await client.getPrompts([
+    { promptId: 'test-id-123', version: '1.0.0' },
+    { promptId: 'second-id-456', version: '2.0.0' },
+  ]);
+
+  const [firstUrl] = getMockCalls()[0] as [string];
+  const [secondUrl] = getMockCalls()[1] as [string];
+
+  expect(firstUrl).toContain('version=1.0.0');
+  expect(secondUrl).toContain('version=2.0.0');
+});
+
+// --- detectProviderName() tests ---
+
+test('detectProviderName() detects anthropic from claude prefix', () => {
+  expect(detectProviderName('claude-haiku-4-5')).toBe('anthropic');
+  expect(detectProviderName('claude-sonnet-4.5')).toBe('anthropic');
+});
+
+test('detectProviderName() detects openai from gpt/o1/o3/o4/chatgpt prefixes', () => {
+  expect(detectProviderName('gpt-4o')).toBe('openai');
+  expect(detectProviderName('o1-preview')).toBe('openai');
+  expect(detectProviderName('o3-mini')).toBe('openai');
+  expect(detectProviderName('o4-mini')).toBe('openai');
+  expect(detectProviderName('chatgpt-4o-latest')).toBe('openai');
+});
+
+test('detectProviderName() detects google from gemini prefix', () => {
+  expect(detectProviderName('gemini-2.0-flash')).toBe('google');
+});
+
+test('detectProviderName() detects mistral from mistral/mixtral/codestral prefixes', () => {
+  expect(detectProviderName('mistral-large-latest')).toBe('mistral');
+  expect(detectProviderName('mixtral-8x7b')).toBe('mistral');
+  expect(detectProviderName('codestral-latest')).toBe('mistral');
+});
+
+test('detectProviderName() is case-insensitive', () => {
+  expect(detectProviderName('Claude-Haiku-4-5')).toBe('anthropic');
+  expect(detectProviderName('GPT-4o')).toBe('openai');
+});
+
+test('detectProviderName() returns undefined for unknown model', () => {
+  expect(detectProviderName('llama-3')).toBeUndefined();
+  expect(detectProviderName('unknown-model')).toBeUndefined();
+});
+
+// --- resolveModel() tests ---
+
+test('resolveModel() returns undefined for unknown prefix', async () => {
+  expect(await resolveModel('llama-3-70b')).toBeUndefined();
+});
+
+test('resolveModel() returns undefined when provider package is not installed', async () => {
+  expect(await resolveModel('claude-haiku-4-5')).toBeUndefined();
+});
+
+// --- model field on results ---
+
+test('getPrompt() includes model field (undefined when provider not installed)', async () => {
+  const { client } = setup();
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.model).toBeUndefined();
+  expect(result.config.model).toBe('claude-haiku-4.5');
+});
+
+test('aiParams() includes model field (undefined when provider not installed)', async () => {
+  const { client } = setup();
+  const params = await client.aiParams('my-prompt');
+
+  expect(params.model).toBeUndefined();
 });

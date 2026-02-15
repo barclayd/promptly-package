@@ -1,0 +1,103 @@
+name: Release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build
+
+      - name: Smoke tests
+        run: bun run test:smoke
+        env:
+          TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
+          TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
+
+      - name: Set canary version
+        run: |
+          SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
+          CURRENT_VERSION=$(jq -r .version package.json)
+          npm version "${CURRENT_VERSION}-canary.${SHORT_SHA}" --no-git-tag-version
+          echo "CANARY_VERSION=${CURRENT_VERSION}-canary.${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Publish canary
+        run: npm publish --tag canary --access public --provenance
+
+      - name: Comment on PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: canary-release
+          message: |
+            ### :package: Canary Release
+
+            ```sh
+            npm install @promptlycms/prompts@canary
+            # or
+            bun add @promptlycms/prompts@canary
+            ```
+
+            **Version:** `${{ env.CANARY_VERSION }}`
+            **Commit:** ${{ github.event.pull_request.head.sha }}
+
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build
+
+      - name: Smoke tests
+        run: bun run test:smoke
+        env:
+          TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
+          TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
+
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          version: bunx changeset version
+          publish: bunx changeset publish
+          title: "chore: version packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
