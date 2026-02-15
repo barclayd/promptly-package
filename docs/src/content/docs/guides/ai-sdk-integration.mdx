@@ -5,7 +5,7 @@ description: Use getPrompt() to integrate Promptly CMS prompts with Vercel AI SD
 
 import { Aside } from '@astrojs/starlight/components';
 
-The `getPrompt()` method returns everything you need to integrate with the [Vercel AI SDK](https://ai-sdk.dev/). Destructure the result and pass properties directly to `generateText()`, `streamText()`, and other AI SDK functions — no prompts hardcoded in your application code.
+The `getPrompt()` method returns everything you need to integrate with the [Vercel AI SDK](https://ai-sdk.dev/). Destructure the result and pass properties directly to `generateText()`, `streamText()`, and other AI SDK functions - no prompts hardcoded in your application code.
 
 ## Basic usage
 
@@ -45,10 +45,10 @@ const result = await promptly.getPrompt('my-prompt');
 // }
 ```
 
-- **`systemMessage`** — the system message from the CMS
-- **`userMessage`** — callable function that interpolates template variables; call `String(userMessage)` for the raw template
-- **`temperature`** — the temperature setting from the CMS
-- **`model`** — automatically resolved from the model configured in the CMS (see [Model Resolution](/guides/model-resolution/))
+- **`systemMessage`** - the system message from the CMS
+- **`userMessage`** - callable function that interpolates template variables; call `String(userMessage)` for the raw template
+- **`temperature`** - the temperature setting from the CMS
+- **`model`** - automatically resolved from the model configured in the CMS (see [Model Resolution](/guides/model-resolution/))
 
 ## With `generateText()`
 

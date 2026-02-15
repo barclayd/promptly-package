@@ -4,27 +4,27 @@
  *
  * Source: app.promptlycms.com (../promptly/app/app.css)
  *
- * Dark mode  — neutral grays (LAB zero-chroma), accent = var(--primary) = white
- * Light mode — white bg, low-chroma OKLCH grays, accent = color-mix(--primary 90%, transparent)
+ * Dark mode  - neutral grays (LAB zero-chroma), accent = var(--primary) = white
+ * Light mode - white bg, low-chroma OKLCH grays, accent = color-mix(--primary 90%, transparent)
  *              where --primary = oklch(20.8% .042 265.755) (dark navy)
  *
  * Backgrounds:
- *   Dark  — primary bg: lab(2.75%), sidebar: lab(7.78%)
- *   Light — primary bg: oklch(100%), sidebar: oklch(98.4% .003 247.858)
+ *   Dark  - primary bg: lab(2.75%), sidebar: lab(7.78%)
+ *   Light - primary bg: oklch(100%), sidebar: oklch(98.4% .003 247.858)
  */
 
 /* Dark mode (Starlight default) */
 :root {
-  /* Accent — white, matching app's --primary: lab(98.26% 0 0) */
+  /* Accent - white, matching app's --primary: lab(98.26% 0 0) */
   --sl-color-accent-low: hsl(0, 0%, 14%);
   --sl-color-accent: hsl(0, 0%, 98%);
   --sl-color-accent-high: hsl(0, 0%, 98%);
 
-  /* Base colors — near-black matching app's lab(2.75%) */
+  /* Base colors - near-black matching app's lab(2.75%) */
   --sl-color-white: hsl(0, 0%, 98%);
   --sl-color-black: hsl(0, 0%, 3%);
 
-  /* Gray scale — neutral to match app's zero-chroma LAB dark palette */
+  /* Gray scale - neutral to match app's zero-chroma LAB dark palette */
   --sl-color-gray-1: hsl(0, 0%, 90%);
   --sl-color-gray-2: hsl(0, 0%, 64%);
   --sl-color-gray-3: hsl(0, 0%, 46%);
@@ -53,7 +53,7 @@
   --sl-color-backdrop-overlay: hsla(0, 0%, 5%, 0.66);
 }
 
-/* Hero — center content and match promptlycms.com h1 */
+/* Hero - center content and match promptlycms.com h1 */
 .hero {
   grid-template-columns: 1fr !important;
   justify-items: center;
@@ -121,7 +121,7 @@
 
 :root[data-theme="light"] {
   /*
-   * Accent — app's color-mix(in oklab, var(--primary) 90%, transparent)
+   * Accent - app's color-mix(in oklab, var(--primary) 90%, transparent)
    * where --primary = oklch(20.8% .042 265.755) ≈ hsl(248, 30%, 15%)
    * At 90% over white ≈ hsl(248, 25%, 22%)
    */
@@ -137,11 +137,11 @@
     transparent
   );
 
-  /* Base colors — white bg matching app's oklch(100% 0 0) */
+  /* Base colors - white bg matching app's oklch(100% 0 0) */
   --sl-color-white: hsl(248, 20%, 10%);
   --sl-color-black: hsl(0, 0%, 100%);
 
-  /* Gray scale — very low saturation matching app's OKLCH grays (~0.007-0.046 chroma) */
+  /* Gray scale - very low saturation matching app's OKLCH grays (~0.007-0.046 chroma) */
   --sl-color-gray-1: hsl(250, 10%, 14%);
   --sl-color-gray-2: hsl(250, 8%, 22%);
   --sl-color-gray-3: hsl(250, 5%, 50%);

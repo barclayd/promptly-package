@@ -21,7 +21,7 @@ const promptly = createPromptlyClient({
 |--------|------|----------|---------|-------------|
 | `apiKey` | `string` | No | `process.env.PROMPTLY_API_KEY` | Your Promptly API key |
 | `baseUrl` | `string` | No | `https://api.promptlycms.com` | API base URL |
-| `model` | `(modelId: string) => LanguageModel` | No | Auto-detection | Custom model resolver — overrides built-in auto-detection |
+| `model` | `(modelId: string) => LanguageModel` | No | Auto-detection | Custom model resolver - overrides built-in auto-detection |
 
 ### Return type
 
@@ -115,7 +115,7 @@ Each `PromptRequest`:
 
 ### Return type
 
-Returns `GetPromptsResults<T>` — a mapped tuple where each position is typed to the corresponding request's prompt variables.
+Returns `GetPromptsResults<T>` - a mapped tuple where each position is typed to the corresponding request's prompt variables.
 
 ### Generic type parameters
 

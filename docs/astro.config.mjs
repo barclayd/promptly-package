@@ -30,7 +30,7 @@ export default defineConfig({
       },
       favicon: '/favicon.ico',
       description:
-        'TypeScript SDK for Promptly CMS — type-safe prompts for AI applications made delightfully simple',
+        'TypeScript SDK for Promptly CMS - type-safe prompts for AI applications made delightfully simple',
       social: [
         {
           icon: 'github',
