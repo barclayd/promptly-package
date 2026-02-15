@@ -52,39 +52,54 @@
   --sl-color-backdrop-overlay: hsla(0, 0%, 5%, 0.66);
 }
 
-/* Hero headline — matches promptlycms.com h1 */
-.hero-headline {
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
-  font-size: clamp(1.875rem, 5vw, 3.75rem);
-  margin-block: 0;
-  text-wrap: balance;
+/* Hero — center content and match promptlycms.com h1 */
+.hero {
+  grid-template-columns: 1fr !important;
+  justify-items: center;
+}
+
+.hero .sl-flex.stack {
+  align-items: center;
   text-align: center;
 }
 
+.hero .copy {
+  align-items: center !important;
+}
+
+.hero .actions {
+  justify-content: center !important;
+}
+
+.hero h1 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  font-size: clamp(1.875rem, 5vw, 3.75rem) !important;
+  text-wrap: balance;
+}
+
 @media (min-width: 72rem) {
-  .hero-headline {
-    font-size: 4.5rem;
+  .hero h1 {
+    font-size: 4.5rem !important;
     line-height: 1.1;
   }
 }
 
-.hero-headline .gradient {
+.hero h1 .gradient {
   position: relative;
   display: inline;
   white-space: nowrap;
 }
 
-.hero-headline .gradient-text {
+.hero h1 .gradient-text {
   background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Override Starlight's .sl-markdown-content svg { display: block } */
-.hero-headline .gradient svg {
+.hero h1 .gradient svg {
   display: inline;
   position: absolute;
   bottom: -0.5rem;
@@ -94,14 +109,13 @@
   color: rgb(99 102 241 / 0.3);
 }
 
-.hero-subtitle {
+.hero .tagline {
   font-size: clamp(1rem, 2vw, 1.25rem);
   line-height: 1.6;
   color: var(--sl-color-gray-2);
   max-width: 40rem;
-  text-align: center;
   margin-inline: auto;
-  margin-block-start: 0.75rem;
+  margin-block-start: 1.5rem;
 }
 
 :root[data-theme='light'] {
