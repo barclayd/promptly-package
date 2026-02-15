@@ -1,10 +1,28 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
+/** Replace purple keyword colors with blue in Night Owl themes */
+const replacePurpleTokens = (theme) => {
+  const replacements =
+    theme.type === 'dark'
+      ? { '#C792EA': '#7DCFFF', '#c792ea': '#7dcfff' }
+      : { '#994CC3': '#4338CA', '#994cc3': '#4338ca' };
+  for (const setting of theme.settings) {
+    const fg = setting.settings?.foreground;
+    if (fg && replacements[fg]) {
+      setting.settings.foreground = replacements[fg];
+    }
+  }
+  return theme;
+};
+
 export default defineConfig({
   site: 'https://docs.promptlycms.com',
   integrations: [
     starlight({
+      expressiveCode: {
+        customizeTheme: replacePurpleTokens,
+      },
       title: 'PromptlyCMS',
       logo: {
         src: './src/assets/logo.webp',
