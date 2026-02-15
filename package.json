@@ -16,7 +16,7 @@
     }
   },
   "bin": {
-    "promptly": "./dist/cli.js"
+    "promptly": "dist/cli.js"
   },
   "files": [
     "dist"
