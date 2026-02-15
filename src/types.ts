@@ -155,6 +155,7 @@ export type ErrorResponse = {
 export type PromptlyClientConfig = {
   apiKey?: string;
   baseUrl?: string;
+  model?: (modelId: string) => import('ai').LanguageModel;
 };
 
 export type GetOptions<V extends string = string> = {

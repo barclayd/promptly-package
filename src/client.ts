@@ -13,6 +13,25 @@ import type {
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
 
+const MODEL_ID_MAP: Record<string, string> = {
+  // Anthropic: CMS display IDs → API model IDs
+  'claude-opus-4.6': 'claude-opus-4-6-20250917',
+  'claude-sonnet-4.5': 'claude-sonnet-4-5-20250929',
+  'claude-haiku-4.5': 'claude-haiku-4-5-20251001',
+  'claude-opus-4': 'claude-opus-4-20250514',
+  'claude-sonnet-4': 'claude-sonnet-4-20250514',
+  'claude-3.7-sonnet': 'claude-3-7-sonnet-20250219',
+  // Google: CMS display IDs → Gemini SDK model names
+  'gemini-3-pro': 'gemini-3.0-pro',
+  'gemini-3-flash': 'gemini-3.0-flash',
+  'gemini-3-deep-think': 'gemini-3.0-deep-think',
+  'gemini-2.5-pro': 'gemini-2.5-pro-latest',
+  'gemini-2.5-flash': 'gemini-2.5-flash-preview-05-20',
+};
+
+export const getSdkModelId = (modelId: string): string =>
+  MODEL_ID_MAP[modelId] ?? modelId;
+
 const PROVIDER_PREFIXES: [string, string][] = [
   ['claude', 'anthropic'],
   ['gpt', 'openai'],
@@ -26,13 +45,6 @@ const PROVIDER_PREFIXES: [string, string][] = [
   ['codestral', 'mistral'],
 ];
 
-const PROVIDER_PACKAGES: Record<string, string> = {
-  anthropic: '@ai-sdk/anthropic',
-  openai: '@ai-sdk/openai',
-  google: '@ai-sdk/google',
-  mistral: '@ai-sdk/mistral',
-};
-
 export const detectProviderName = (modelId: string): string | undefined => {
   const lower = modelId.toLowerCase();
   for (const [prefix, provider] of PROVIDER_PREFIXES) {
@@ -43,6 +55,9 @@ export const detectProviderName = (modelId: string): string | undefined => {
   return undefined;
 };
 
+// Uses string-literal imports so bundlers (esbuild, webpack) can
+// statically resolve each provider package at build time.
+// `import(variable)` is invisible to bundlers and fails at runtime.
 export const resolveModel = async (
   modelId: string,
 ): Promise<import('ai').LanguageModel | undefined> => {
@@ -51,14 +66,29 @@ export const resolveModel = async (
     return undefined;
   }
 
-  const pkg = PROVIDER_PACKAGES[providerName];
-  if (!pkg) {
-    return undefined;
-  }
+  const sdkModelId = getSdkModelId(modelId);
 
   try {
-    const mod = await import(pkg);
-    return mod[providerName](modelId);
+    switch (providerName) {
+      case 'anthropic': {
+        const { anthropic } = await import('@ai-sdk/anthropic');
+        return anthropic(sdkModelId);
+      }
+      case 'openai': {
+        const { openai } = await import('@ai-sdk/openai');
+        return openai(sdkModelId);
+      }
+      case 'google': {
+        const { google } = await import('@ai-sdk/google');
+        return google(sdkModelId);
+      }
+      case 'mistral': {
+        const { mistral } = await import('@ai-sdk/mistral');
+        return mistral(sdkModelId);
+      }
+      default:
+        return undefined;
+    }
   } catch {
     return undefined;
   }
@@ -82,6 +112,41 @@ const createPromptMessage = (template: string): PromptMessage => {
   return fn as PromptMessage;
 };
 
+const PROVIDER_PACKAGES: Record<string, string> = {
+  anthropic: '@ai-sdk/anthropic',
+  openai: '@ai-sdk/openai',
+  google: '@ai-sdk/google',
+  mistral: '@ai-sdk/mistral',
+};
+
+const createModelResolver = (
+  config?: PromptlyClientConfig,
+): ((modelId: string) => Promise<import('ai').LanguageModel>) => {
+  if (config?.model) {
+    const userResolver = config.model;
+    return async (modelId: string) => userResolver(modelId);
+  }
+
+  return async (modelId: string) => {
+    const model = await resolveModel(modelId);
+    if (model) {
+      return model;
+    }
+
+    const providerName = detectProviderName(modelId);
+    const pkg = providerName ? PROVIDER_PACKAGES[providerName] : undefined;
+    const hint = pkg
+      ? `Make sure "${pkg}" is installed: npm install ${pkg}`
+      : `Supported model prefixes: ${PROVIDER_PREFIXES.map(([p]) => p).join(', ')}`;
+
+    throw new PromptlyError(
+      `Failed to resolve model "${modelId}". ${hint}`,
+      'BAD_REQUEST',
+      0,
+    );
+  };
+};
+
 export const createPromptlyClient = (
   config?: PromptlyClientConfig,
 ): PromptlyClient => {
@@ -94,6 +159,7 @@ export const createPromptlyClient = (
     );
   }
   const baseUrl = config?.baseUrl ?? DEFAULT_BASE_URL;
+  const modelResolver = createModelResolver(config);
 
   const fetchPrompt = async (
     promptId: string,
@@ -122,7 +188,7 @@ export const createPromptlyClient = (
     options?: GetOptions<V>,
   ) => {
     const response = await fetchPrompt(promptId, options);
-    const model = await resolveModel(response.config.model);
+    const model = await modelResolver(response.config.model);
     return {
       ...response,
       userMessage: createPromptMessage(response.userMessage),
@@ -149,7 +215,7 @@ export const createPromptlyClient = (
       ? interpolate(prompt.userMessage, options.variables)
       : prompt.userMessage;
 
-    const model = await resolveModel(prompt.config.model);
+    const model = await modelResolver(prompt.config.model);
 
     const result = {
       system: prompt.systemMessage,

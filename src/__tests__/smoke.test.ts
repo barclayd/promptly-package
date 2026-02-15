@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 import {
   extractTemplateVariables,
   fetchAllPrompts,
@@ -86,6 +87,26 @@ test.skipIf(!hasEnv)('smoke: aiParams() returns AI SDK params', async () => {
   expect(typeof params.prompt).toBe('string');
   expect(typeof params.temperature).toBe('number');
 });
+
+test.skipIf(!hasEnv)(
+  'smoke: getPrompt() resolves language model for anthropic prompt',
+  async () => {
+    const apiKey = TEST_API_KEY;
+    if (!apiKey) {
+      throw new Error('TEST_PROMPT_API_KEY required');
+    }
+
+    const client = createPromptlyClient({ apiKey });
+    const result = await client.getPrompt('JPxlUpstuhXB5OwOtKPpj');
+
+    expect(result.model).toBeDefined();
+    const model = result.model as LanguageModelV3;
+    expect(model.specificationVersion).toBe('v3');
+    expect(model.provider).toContain('anthropic');
+    expect(model.modelId).toContain('claude');
+    expect(model.modelId).not.toContain('.');
+  },
+);
 
 test.skipIf(!TEST_API_KEY)(
   'smoke: getPrompt() throws PromptlyError for nonexistent prompt',

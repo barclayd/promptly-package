@@ -1,13 +1,19 @@
 import { afterEach, expect, mock, test } from 'bun:test';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 import {
   createPromptlyClient,
   detectProviderName,
+  getSdkModelId,
   resolveModel,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
 import type { PromptResponse } from '../types.ts';
 
 type MockFetch = ReturnType<typeof mock<typeof fetch>>;
+
+const stubModel = ((id: string) => ({ modelId: id })) as (
+  id: string,
+) => import('ai').LanguageModel;
 
 const mockPromptResponse: PromptResponse = {
   promptId: 'test-id-123',
@@ -68,7 +74,10 @@ const setup = (response?: PromptResponse) => {
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({
+    apiKey: 'test-key',
+    model: stubModel,
+  });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -102,7 +111,7 @@ test('createPromptlyClient() reads API key from PROMPTLY_API_KEY env var', async
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient();
+  const client = createPromptlyClient({ model: stubModel });
   await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
@@ -137,7 +146,10 @@ test('createPromptlyClient() prefers explicit apiKey over env var', async () => 
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'explicit-key' });
+  const client = createPromptlyClient({
+    apiKey: 'explicit-key',
+    model: stubModel,
+  });
   await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
@@ -180,6 +192,7 @@ test('getPrompt() uses custom base URL', async () => {
   const client = createPromptlyClient({
     apiKey: 'test-key',
     baseUrl: 'https://custom.api.com',
+    model: stubModel,
   });
   await client.getPrompt('my-prompt');
 
@@ -338,7 +351,10 @@ const setupMulti = (responses: PromptResponse[]) => {
     );
   }) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({
+    apiKey: 'test-key',
+    model: stubModel,
+  });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -438,23 +454,117 @@ test('resolveModel() returns undefined for unknown prefix', async () => {
   expect(await resolveModel('llama-3-70b')).toBeUndefined();
 });
 
-test('resolveModel() returns undefined when provider package is not installed', async () => {
-  expect(await resolveModel('claude-haiku-4-5')).toBeUndefined();
+test('resolveModel() resolves anthropic model when package is installed', async () => {
+  const model = await resolveModel('claude-haiku-4-5');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('claude-haiku-4-5');
 });
 
-// --- model field on results ---
+test('resolveModel() resolves openai model when package is installed', async () => {
+  const model = await resolveModel('gpt-4o');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('gpt-4o');
+});
 
-test('getPrompt() includes model field (undefined when provider not installed)', async () => {
+// --- model resolution tests ---
+
+test('getPrompt() resolves model automatically', async () => {
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.model).toBeDefined();
+  expect((result.model as LanguageModelV3).modelId).toBe(
+    'claude-haiku-4-5-20251001',
+  );
+});
+
+test('getPrompt() uses model callback from config when provided', async () => {
   const { client } = setup();
   const result = await client.getPrompt('my-prompt');
 
-  expect(result.model).toBeUndefined();
-  expect(result.config.model).toBe('claude-haiku-4.5');
+  expect(result.model).toBeDefined();
+  expect((result.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
 });
 
-test('aiParams() includes model field (undefined when provider not installed)', async () => {
-  const { client } = setup();
+test('aiParams() resolves model automatically', async () => {
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const params = await client.aiParams('my-prompt');
 
-  expect(params.model).toBeUndefined();
+  expect(params.model).toBeDefined();
+  expect((params.model as LanguageModelV3).modelId).toBe(
+    'claude-haiku-4-5-20251001',
+  );
+});
+
+// --- getSdkModelId() tests ---
+
+test('getSdkModelId() maps anthropic CMS IDs to API model IDs', () => {
+  expect(getSdkModelId('claude-haiku-4.5')).toBe('claude-haiku-4-5-20251001');
+  expect(getSdkModelId('claude-sonnet-4.5')).toBe('claude-sonnet-4-5-20250929');
+  expect(getSdkModelId('claude-opus-4.6')).toBe('claude-opus-4-6-20250917');
+  expect(getSdkModelId('claude-opus-4')).toBe('claude-opus-4-20250514');
+  expect(getSdkModelId('claude-sonnet-4')).toBe('claude-sonnet-4-20250514');
+  expect(getSdkModelId('claude-3.7-sonnet')).toBe('claude-3-7-sonnet-20250219');
+});
+
+test('getSdkModelId() maps google CMS IDs to Gemini SDK model names', () => {
+  expect(getSdkModelId('gemini-3-pro')).toBe('gemini-3.0-pro');
+  expect(getSdkModelId('gemini-3-flash')).toBe('gemini-3.0-flash');
+  expect(getSdkModelId('gemini-3-deep-think')).toBe('gemini-3.0-deep-think');
+  expect(getSdkModelId('gemini-2.5-pro')).toBe('gemini-2.5-pro-latest');
+  expect(getSdkModelId('gemini-2.5-flash')).toBe(
+    'gemini-2.5-flash-preview-05-20',
+  );
+});
+
+test('getSdkModelId() passes through unknown model IDs unchanged', () => {
+  expect(getSdkModelId('gpt-4o')).toBe('gpt-4o');
+  expect(getSdkModelId('o4-mini')).toBe('o4-mini');
+  expect(getSdkModelId('mistral-large-latest')).toBe('mistral-large-latest');
+  expect(getSdkModelId('custom-model')).toBe('custom-model');
+});
+
+test('resolveModel() uses mapped model ID for anthropic', async () => {
+  const model = await resolveModel('claude-haiku-4.5');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('claude-haiku-4-5-20251001');
+});
+
+test('getPrompt() throws for unknown provider', async () => {
+  const unknownResponse: PromptResponse = {
+    ...mockPromptResponse,
+    config: { ...mockPromptResponse.config, model: 'llama-3-70b' },
+  };
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(unknownResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
+
+  await expect(client.getPrompt('my-prompt')).rejects.toThrow(
+    'Failed to resolve model "llama-3-70b"',
+  );
 });

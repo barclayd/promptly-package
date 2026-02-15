@@ -27,7 +27,7 @@ declare module '../types.ts' {
 
 declare const client: PromptlyClient;
 
-// --- model is required (not optional) ---
+// --- model is required (resolver throws on failure) ---
 
 type _ModelOnResult = Expect<Equal<PromptResult['model'], LanguageModel>>;
 type _ModelOnAiParams = Expect<Equal<AiParams['model'], LanguageModel>>;
