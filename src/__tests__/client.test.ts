@@ -374,10 +374,6 @@ test('detectProviderName() returns undefined for unknown model', () => {
 
 // --- resolveModel() tests ---
 
-test('resolveModel() returns undefined for null model', async () => {
-  expect(await resolveModel(null)).toBeUndefined();
-});
-
 test('resolveModel() returns undefined for unknown prefix', async () => {
   expect(await resolveModel('llama-3-70b')).toBeUndefined();
 });
@@ -401,15 +397,4 @@ test('aiParams() includes model field (undefined when provider not installed)', 
   const params = await client.aiParams('my-prompt');
 
   expect(params.model).toBeUndefined();
-});
-
-test('get() model is undefined when API returns null model', async () => {
-  const nullModelResponse: PromptResponse = {
-    ...mockPromptResponse,
-    config: { ...mockPromptResponse.config, model: null },
-  };
-  const { client } = setup(nullModelResponse);
-  const result = await client.get('my-prompt');
-
-  expect(result.model).toBeUndefined();
 });

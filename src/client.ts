@@ -45,12 +45,8 @@ export const detectProviderName = (modelId: string): string | undefined => {
 };
 
 export const resolveModel = async (
-  modelId: string | null,
+  modelId: string,
 ): Promise<import('ai').LanguageModel | undefined> => {
-  if (!modelId) {
-    return undefined;
-  }
-
   const providerName = detectProviderName(modelId);
   if (!providerName) {
     return undefined;

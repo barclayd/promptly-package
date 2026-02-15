@@ -54,7 +54,7 @@ export type SchemaField = {
 
 export type PromptConfig = {
   schema: SchemaField[];
-  model: string | null;
+  model: string;
   temperature: number;
   inputData: unknown;
   inputDataRootName: string | null;

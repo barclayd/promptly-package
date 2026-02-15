@@ -93,7 +93,7 @@ test.skipIf(!TEST_API_KEY)(
 // --- fetchAllPrompts / codegen ---
 
 test.skipIf(!TEST_API_KEY)(
-  'smoke: fetchAllPrompts() returns array of prompts',
+  'smoke: fetchAllPrompts() returns array of prompts with publishedVersions',
   async () => {
     const prompts = await fetchAllPrompts(TEST_API_KEY!);
 
@@ -106,6 +106,22 @@ test.skipIf(!TEST_API_KEY)(
     expect(typeof first.userMessage).toBe('string');
     expect(typeof first.config).toBe('object');
     expect(typeof first.config.temperature).toBe('number');
+    expect(typeof first.config.model).toBe('string');
+
+    // Verify publishedVersions is present (include_versions=true)
+    expect(Array.isArray(first.publishedVersions)).toBe(true);
+    expect(first.publishedVersions!.length).toBeGreaterThan(0);
+
+    for (const pv of first.publishedVersions!) {
+      expect(typeof pv.version).toBe('string');
+      expect(typeof pv.userMessage).toBe('string');
+    }
+
+    // Current version should appear in publishedVersions
+    const currentInVersions = first.publishedVersions!.find(
+      (pv) => pv.version === first.version,
+    );
+    expect(currentInVersions).toBeDefined();
   },
 );
 
@@ -152,6 +168,13 @@ test.skipIf(!TEST_API_KEY)(
       const vars = extractTemplateVariables(prompt.userMessage);
       for (const v of vars) {
         expect(declaration).toContain(`${v}: string;`);
+      }
+
+      // Verify per-version entries from publishedVersions
+      if (prompt.publishedVersions) {
+        for (const pv of prompt.publishedVersions) {
+          expect(declaration).toContain(`'${pv.version}':`);
+        }
       }
     }
   },
