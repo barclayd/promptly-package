@@ -242,3 +242,93 @@ test('get() returns temperature at top level', async () => {
   expect(result.temperature).toBe(0.7);
   expect(result.temperature).toBe(result.config.temperature);
 });
+
+// --- getPrompts() tests ---
+
+const mockSecondPromptResponse: PromptResponse = {
+  promptId: 'second-id-456',
+  promptName: 'Second Prompt',
+  version: '2.0.0',
+  systemMessage: 'You are a second assistant.',
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  userMessage: 'Email to ${email} about ${subject}.',
+  config: {
+    model: 'claude-sonnet-4.5',
+    temperature: 0.5,
+    schema: [],
+    inputData: null,
+    inputDataRootName: null,
+  },
+};
+
+const setupMulti = (responses: PromptResponse[]) => {
+  let callIndex = 0;
+  globalThis.fetch = mock(() => {
+    const data = responses[callIndex] ?? responses[0];
+    callIndex++;
+    return Promise.resolve(
+      new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+  }) as unknown as typeof fetch;
+
+  const client = createPromptClient({ apiKey: 'test-key' });
+  const getMockCalls = (): unknown[][] =>
+    (globalThis.fetch as unknown as MockFetch).mock.calls;
+
+  return { client, getMockCalls };
+};
+
+test('getPrompts() fetches multiple prompts in parallel', async () => {
+  const { client } = setupMulti([mockPromptResponse, mockSecondPromptResponse]);
+
+  const results = await client.getPrompts([
+    { promptId: 'test-id-123' },
+    { promptId: 'second-id-456' },
+  ]);
+
+  expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  expect(results).toHaveLength(2);
+});
+
+test('getPrompts() returns results in same order as input', async () => {
+  const { client } = setupMulti([mockPromptResponse, mockSecondPromptResponse]);
+
+  const [first, second] = await client.getPrompts([
+    { promptId: 'test-id-123' },
+    { promptId: 'second-id-456' },
+  ]);
+
+  expect(first.promptId).toBe('test-id-123');
+  expect(first.temperature).toBe(0.7);
+  expect(typeof first.userMessage).toBe('function');
+  expect(first.userMessage({ name: 'Alice', task: 'coding' })).toBe(
+    'Hello Alice, please help with coding.',
+  );
+
+  expect(second.promptId).toBe('second-id-456');
+  expect(second.temperature).toBe(0.5);
+  expect(second.userMessage({ email: 'a@b.com', subject: 'Hi' })).toBe(
+    'Email to a@b.com about Hi.',
+  );
+});
+
+test('getPrompts() passes version option per entry', async () => {
+  const { client, getMockCalls } = setupMulti([
+    mockPromptResponse,
+    mockSecondPromptResponse,
+  ]);
+
+  await client.getPrompts([
+    { promptId: 'test-id-123', version: '1.0.0' },
+    { promptId: 'second-id-456', version: '2.0.0' },
+  ]);
+
+  const [firstUrl] = getMockCalls()[0] as [string];
+  const [secondUrl] = getMockCalls()[1] as [string];
+
+  expect(firstUrl).toContain('version=1.0.0');
+  expect(secondUrl).toContain('version=2.0.0');
+});

@@ -69,14 +69,46 @@ export type PromptResponse = {
   config: PromptConfig;
 };
 
-export type PromptMessage = {
-  (variables: Record<string, string>): string;
+// Augmentable by codegen via declaration merging
+// (must be interface — only interfaces support declaration merging)
+// biome-ignore lint/suspicious/noEmptyInterface: declaration merging target populated by codegen
+export interface PromptVariableMap {}
+
+// Suggests known prompt IDs with autocomplete, accepts any string
+export type PromptId = keyof PromptVariableMap | (string & {});
+
+// Resolves variables for a prompt ID
+type VariablesFor<Id extends string> = Id extends keyof PromptVariableMap
+  ? PromptVariableMap[Id]
+  : Record<string, string>;
+
+// Generic over variable shape
+export type PromptMessage<
+  V extends Record<string, string> = Record<string, string>,
+> = {
+  (variables: V): string;
   toString(): string;
 };
 
-export type PromptResult = Omit<PromptResponse, 'userMessage'> & {
-  userMessage: PromptMessage;
+export type PromptResult<
+  V extends Record<string, string> = Record<string, string>,
+> = Omit<PromptResponse, 'userMessage'> & {
+  userMessage: PromptMessage<V>;
   temperature: number;
+};
+
+// --- Batch types ---
+
+export type PromptRequest = {
+  promptId: string;
+  version?: string;
+};
+
+// Mapped tuple: each position gets its own typed PromptResult
+type GetPromptsResults<T extends readonly PromptRequest[]> = {
+  [K in keyof T]: T[K] extends { promptId: infer Id extends string }
+    ? PromptResult<VariablesFor<Id>>
+    : PromptResult;
 };
 
 export type ErrorCode =
@@ -118,7 +150,15 @@ export type AiParams = {
 };
 
 export type PromptClient = {
-  get: (promptId: string, options?: GetOptions) => Promise<PromptResult>;
+  get: <T extends string>(
+    promptId: T,
+    options?: GetOptions,
+  ) => Promise<PromptResult<VariablesFor<T>>>;
+
+  getPrompts: <const T extends readonly PromptRequest[]>(
+    entries: T,
+  ) => Promise<GetPromptsResults<T>>;
+
   aiParams: (promptId: string, options?: AiParamsOptions) => Promise<AiParams>;
 };
 

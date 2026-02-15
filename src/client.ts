@@ -7,6 +7,7 @@ import type {
   PromptClient,
   PromptClientConfig,
   PromptMessage,
+  PromptRequest,
   PromptResponse,
   PromptResult,
 } from './types.ts';
@@ -58,8 +59,8 @@ export const createPromptClient = (
     return response.json() as Promise<PromptResponse>;
   };
 
-  const get = async (
-    promptId: string,
+  const get = async <T extends string>(
+    promptId: T,
     options?: GetOptions,
   ): Promise<PromptResult> => {
     const response = await fetchPrompt(promptId, options);
@@ -68,6 +69,15 @@ export const createPromptClient = (
       userMessage: createPromptMessage(response.userMessage),
       temperature: response.config.temperature,
     };
+  };
+
+  const getPrompts = async (
+    entries: readonly PromptRequest[],
+  ): Promise<PromptResult[]> => {
+    const results = await Promise.all(
+      entries.map((entry) => get(entry.promptId, { version: entry.version })),
+    );
+    return results;
   };
 
   const aiParams = async (
@@ -97,5 +107,5 @@ export const createPromptClient = (
     return result;
   };
 
-  return { get, aiParams };
+  return { get, getPrompts, aiParams } as PromptClient;
 };

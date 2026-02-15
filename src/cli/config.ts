@@ -9,7 +9,9 @@ const CONFIG_FILES = [
 
 const DEFAULT_OUTPUT_DIR = './src/generated/prompts';
 
-export const loadConfig = async (cwd: string): Promise<PromptlyConfig> => {
+export const loadConfig = async (
+  cwd: string,
+): Promise<PromptlyConfig | null> => {
   const jiti = createJiti(cwd);
 
   for (const file of CONFIG_FILES) {
@@ -35,9 +37,7 @@ export const loadConfig = async (cwd: string): Promise<PromptlyConfig> => {
     }
   }
 
-  throw new Error(
-    `No config file found. Create one of: ${CONFIG_FILES.join(', ')}`,
-  );
+  return null;
 };
 
 const validateConfig = (config: unknown, file: string): void => {
