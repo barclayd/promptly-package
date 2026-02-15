@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises';
+import { createErrorFromResponse } from '../errors.ts';
 import type { PromptResponse } from '../types.ts';
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
@@ -28,9 +29,7 @@ export const fetchAllPrompts = async (
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch prompts: ${response.status} ${response.statusText}`,
-    );
+    throw await createErrorFromResponse(response);
   }
 
   return response.json() as Promise<PromptResponse[]>;

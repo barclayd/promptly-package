@@ -28,6 +28,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test",
+    "test:smoke": "bun test src/__tests__/smoke.test.ts",
     "test:watch": "bun test --watch",
     "prepublishOnly": "bun run build"
   },

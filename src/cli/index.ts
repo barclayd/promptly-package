@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineCommand, runMain } from 'citty';
+import { PromptlyError } from '../errors.ts';
 import { generate } from './generate.ts';
 
 const DEFAULT_DTS_OUTPUT = './promptly-env.d.ts';
@@ -37,6 +38,38 @@ const loadEnvFile = (): void => {
 
 loadEnvFile();
 
+const formatPromptlyError = (error: PromptlyError): void => {
+  const errorMessages: Record<string, string> = {
+    NOT_FOUND:
+      'The prompt listing endpoint (GET /prompts) was not found. Check that your API supports this endpoint, or upgrade to the latest Promptly CMS version.',
+    INVALID_KEY:
+      'Invalid API key. Check your PROMPTLY_API_KEY or pass a valid key with --api-key.',
+    UNAUTHORIZED:
+      'Unauthorized. Check your PROMPTLY_API_KEY or pass a valid key with --api-key.',
+  };
+
+  const mapped = errorMessages[error.code];
+  if (mapped) {
+    console.error(`Error: ${mapped}`);
+    return;
+  }
+
+  if (error.code === 'USAGE_LIMIT_EXCEEDED') {
+    console.error(`Error: Usage limit exceeded. ${error.message}`);
+    if (error.usage) {
+      console.error(`Usage: ${JSON.stringify(error.usage)}`);
+    }
+    if (error.upgradeUrl) {
+      console.error(`Upgrade your plan: ${error.upgradeUrl}`);
+    }
+    return;
+  }
+
+  console.error(
+    `Error (${error.code}, HTTP ${error.status}): ${error.message}`,
+  );
+};
+
 const generateCommand = defineCommand({
   meta: {
     name: 'generate',
@@ -59,15 +92,27 @@ const generateCommand = defineCommand({
 
     const apiKey = args['api-key'] ?? process.env.PROMPTLY_API_KEY;
     if (!apiKey) {
-      throw new Error(
-        'No API key provided. Set PROMPTLY_API_KEY or pass --api-key.',
+      console.error(
+        'Error: No API key provided. Set PROMPTLY_API_KEY or pass --api-key.',
       );
+      process.exit(1);
     }
 
     const outputPath = args.output ?? DEFAULT_DTS_OUTPUT;
-    await generate(apiKey, outputPath);
 
-    console.log('\nDone!');
+    try {
+      await generate(apiKey, outputPath);
+      console.log('\nDone!');
+    } catch (error) {
+      if (error instanceof PromptlyError) {
+        formatPromptlyError(error);
+      } else {
+        console.error(
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      process.exit(1);
+    }
   },
 });
 

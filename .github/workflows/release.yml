@@ -32,6 +32,12 @@ jobs:
 
       - run: bun run build
 
+      - name: Smoke tests
+        run: bun run test:smoke
+        env:
+          TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
+          TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
+
       - name: Set canary version
         run: |
           SHORT_SHA=$(echo "${{ github.event.pull_request.head.sha }}" | cut -c1-7)
@@ -78,6 +84,12 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - run: bun run build
+
+      - name: Smoke tests
+        run: bun run test:smoke
+        env:
+          TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
+          TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
 
       - name: Create release PR or publish
         uses: changesets/action@v1
