@@ -6,12 +6,12 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
+      "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
     "./schema": {
       "types": "./dist/schema.d.ts",
-      "import": "./dist/schema.mjs",
+      "import": "./dist/schema.js",
       "require": "./dist/schema.cjs"
     }
   },
