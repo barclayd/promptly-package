@@ -47,13 +47,13 @@ import { Card, CardGrid, Tabs, TabItem, Aside } from '@astrojs/starlight/compone
 
 <CardGrid>
   <Card title="Zero Hardcoded Prompts" icon="rocket">
-    Fetch prompts at runtime with `getPrompt()` and `getPrompts()`. Update wording, model, and temperature from the [CMS](https://promptlycms.com) — no code changes, no redeploys.
+    Fetch prompts at runtime with `getPrompt()` and `getPrompts()`. Update wording, model, and temperature from the [CMS](https://promptlycms.com) - no code changes, no redeploys.
   </Card>
   <Card title="AI SDK Integration" icon="puzzle">
     `getPrompt()` returns model, temperature, and messages ready for [Vercel AI SDK](https://ai-sdk.dev/) functions like `generateText()` and `streamText()`.
   </Card>
   <Card title="Multi-Model Auto-Detection" icon="setting">
-    Supports [all AI SDK providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support). Automatically resolves models from your CMS config — no manual provider setup.
+    Supports [all AI SDK providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support). Automatically resolves models from your CMS config - no manual provider setup.
   </Card>
   <Card title="Codegen for Type Safety" icon="seti:typescript">
     Run `npx promptly generate` to generate typed template variables via declaration merging. Full autocomplete in your editor.
@@ -68,7 +68,7 @@ import { generateText } from 'ai';
 
 const { getPrompt } = createPromptlyClient();
 
-// fetch your prompt at runtime — nothing hardcoded in your codebase
+// fetch your prompt at runtime - no prompts harcoded in your codebase
 const { userMessage, systemMessage, temperature, model } = await getPrompt(
   'upsellMessage',
 );

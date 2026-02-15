@@ -33,15 +33,15 @@ const validated = schema.parse(data);
 
 ### Return type
 
-Returns `z.ZodObject<Record<string, z.ZodTypeAny>>` — a Zod object schema with one property per field.
+Returns `z.ZodObject<Record<string, z.ZodTypeAny>>` - a Zod object schema with one property per field.
 
 ### How fields are built
 
 Each `SchemaField` is processed in three layers:
 
-1. **Type builder** — creates the base Zod type from `field.type` (e.g. `z.string()`, `z.number()`)
-2. **Validation applicators** — applies validation rules from `field.validations` (e.g. `.min()`, `.email()`)
-3. **Description** — adds `.describe()` if `field.params.description` is set
+1. **Type builder** - creates the base Zod type from `field.type` (e.g. `z.string()`, `z.number()`)
+2. **Validation applicators** - applies validation rules from `field.validations` (e.g. `.min()`, `.email()`)
+3. **Description** - adds `.describe()` if `field.params.description` is set
 
 ---
 
@@ -65,7 +65,7 @@ console.log(source);
 
 ### Return type
 
-Returns `string` — valid Zod source code that can be written to a file or evaluated.
+Returns `string` - valid Zod source code that can be written to a file or evaluated.
 
 ### Example output
 
