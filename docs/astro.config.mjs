@@ -6,6 +6,11 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'PromptlyCMS',
+      logo: {
+        src: './src/assets/logo.webp',
+        alt: 'PromptlyCMS',
+      },
+      favicon: '/favicon.ico',
       description:
         'TypeScript SDK for Promptly CMS — type-safe prompts for AI applications made delightfully simple',
       social: [

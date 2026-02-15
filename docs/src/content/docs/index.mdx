@@ -62,20 +62,35 @@ import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
 ## Get started in 3 steps
 
 ```typescript
-// 1. Create a client
 import { createPromptlyClient } from '@promptlycms/prompts';
-
-const promptly = createPromptlyClient();
-
-// 2. Fetch a prompt
-const result = await promptly.getPrompt('my-prompt-id');
-
-// 3. Use with Vercel AI SDK
 import { generateText } from 'ai';
 
-const params = await promptly.aiParams('my-prompt-id', {
-  name: 'Alice', task: 'coding'
+const { getPrompt } = createPromptlyClient();
+
+// promptly was created to be as compatible with Vercel's ai sdk package as possible
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'upsellMessage',
+);
+
+const { text } = await generateText({
+  model,
+  messages: [
+    {
+      role: 'system',
+      content: systemMessage,
+    },
+    {
+      role: 'user',
+      content: userMessage({
+        username,
+        persuasionLevel: 1,
+        recentPurchases,
+      }),
+    },
+  ],
+  temperature,
 });
 
-const { text } = await generateText({ ...params });
+// your AI agent output as usual with 0 prompts hardcoded in your codebase
+console.log(text);
 ```
