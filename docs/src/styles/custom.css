@@ -1,0 +1,174 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: required to override Starlight's high-specificity built-in hero layout styles */
+/*
+ * PromptlyCMS brand palette mapped onto Starlight CSS variables.
+ *
+ * Source: app.promptlycms.com (../promptly/app/app.css)
+ *
+ * Dark mode  — neutral grays (LAB zero-chroma), accent = var(--primary) = white
+ * Light mode — white bg, low-chroma OKLCH grays, accent = color-mix(--primary 90%, transparent)
+ *              where --primary = oklch(20.8% .042 265.755) (dark navy)
+ *
+ * Backgrounds:
+ *   Dark  — primary bg: lab(2.75%), sidebar: lab(7.78%)
+ *   Light — primary bg: oklch(100%), sidebar: oklch(98.4% .003 247.858)
+ */
+
+/* Dark mode (Starlight default) */
+:root {
+  /* Accent — white, matching app's --primary: lab(98.26% 0 0) */
+  --sl-color-accent-low: hsl(0, 0%, 14%);
+  --sl-color-accent: hsl(0, 0%, 98%);
+  --sl-color-accent-high: hsl(0, 0%, 98%);
+
+  /* Base colors — near-black matching app's lab(2.75%) */
+  --sl-color-white: hsl(0, 0%, 98%);
+  --sl-color-black: hsl(0, 0%, 3%);
+
+  /* Gray scale — neutral to match app's zero-chroma LAB dark palette */
+  --sl-color-gray-1: hsl(0, 0%, 90%);
+  --sl-color-gray-2: hsl(0, 0%, 64%);
+  --sl-color-gray-3: hsl(0, 0%, 46%);
+  --sl-color-gray-4: hsl(0, 0%, 30%);
+  --sl-color-gray-5: hsl(0, 0%, 14%);
+  --sl-color-gray-6: hsl(0, 0%, 8%);
+
+  /* Remap purple → blue for Card icons, asides, badges */
+  --sl-hue-purple: 220;
+  --sl-color-purple-low: hsl(230, 30%, 18%);
+  --sl-color-purple: hsl(220, 65%, 55%);
+  --sl-color-purple-high: hsl(215, 50%, 78%);
+
+  /* Semantic colors */
+  --sl-color-text: var(--sl-color-gray-2);
+  --sl-color-text-accent: var(--sl-color-accent-high);
+  --sl-color-text-invert: var(--sl-color-accent-low);
+  --sl-color-bg: var(--sl-color-black);
+  --sl-color-bg-nav: var(--sl-color-gray-6);
+  --sl-color-bg-sidebar: var(--sl-color-gray-6);
+  --sl-color-bg-inline-code: var(--sl-color-gray-5);
+  --sl-color-bg-accent: var(--sl-color-accent-high);
+  --sl-color-hairline-light: var(--sl-color-gray-5);
+  --sl-color-hairline: var(--sl-color-gray-6);
+  --sl-color-hairline-shade: var(--sl-color-black);
+  --sl-color-backdrop-overlay: hsla(0, 0%, 5%, 0.66);
+}
+
+/* Hero — center content and match promptlycms.com h1 */
+.hero {
+  grid-template-columns: 1fr !important;
+  justify-items: center;
+}
+
+.hero .sl-flex.stack {
+  align-items: center;
+  text-align: center;
+}
+
+.hero .copy {
+  align-items: center !important;
+}
+
+.hero .actions {
+  justify-content: center !important;
+}
+
+.hero h1 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  font-size: clamp(1.875rem, 5vw, 3.75rem) !important;
+  text-wrap: balance;
+}
+
+@media (min-width: 72rem) {
+  .hero h1 {
+    font-size: 4.5rem !important;
+    line-height: 1.1;
+  }
+}
+
+.hero h1 .gradient {
+  position: relative;
+  display: inline;
+  white-space: nowrap;
+}
+
+.hero h1 .gradient-text {
+  background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero h1 .gradient svg {
+  display: inline;
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 100%;
+  height: 0.75rem;
+  color: rgb(99 102 241 / 0.3);
+}
+
+.hero .tagline {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--sl-color-gray-2);
+  max-width: 40rem;
+  margin-inline: auto;
+  margin-block-start: 1.5rem;
+}
+
+:root[data-theme="light"] {
+  /*
+   * Accent — app's color-mix(in oklab, var(--primary) 90%, transparent)
+   * where --primary = oklch(20.8% .042 265.755) ≈ hsl(248, 30%, 15%)
+   * At 90% over white ≈ hsl(248, 25%, 22%)
+   */
+  --sl-color-accent-low: hsl(248, 20%, 94%);
+  --sl-color-accent: color-mix(
+    in oklab,
+    oklch(20.8% 0.042 265.755) 90%,
+    transparent
+  );
+  --sl-color-accent-high: color-mix(
+    in oklab,
+    oklch(20.8% 0.042 265.755) 90%,
+    transparent
+  );
+
+  /* Base colors — white bg matching app's oklch(100% 0 0) */
+  --sl-color-white: hsl(248, 20%, 10%);
+  --sl-color-black: hsl(0, 0%, 100%);
+
+  /* Gray scale — very low saturation matching app's OKLCH grays (~0.007-0.046 chroma) */
+  --sl-color-gray-1: hsl(250, 10%, 14%);
+  --sl-color-gray-2: hsl(250, 8%, 22%);
+  --sl-color-gray-3: hsl(250, 5%, 50%);
+  --sl-color-gray-4: hsl(250, 4%, 72%);
+  --sl-color-gray-5: hsl(250, 6%, 92%);
+  --sl-color-gray-6: hsl(250, 10%, 96%);
+  --sl-color-gray-7: hsl(
+    248,
+    5%,
+    98%
+  ); /* app sidebar: oklch(98.4% .003 247.858) */
+
+  /* Purple → blue for light mode */
+  --sl-color-purple-low: hsl(225, 70%, 92%);
+  --sl-color-purple: hsl(220, 75%, 52%);
+  --sl-color-purple-high: hsl(225, 50%, 25%);
+
+  /* Semantic colors */
+  --sl-color-text-accent: var(--sl-color-accent);
+  --sl-color-text-invert: var(--sl-color-black);
+  --sl-color-bg-nav: var(--sl-color-gray-7);
+  --sl-color-bg-sidebar: var(
+    --sl-color-gray-7
+  ); /* off-white sidebar like the app */
+  --sl-color-bg-inline-code: var(--sl-color-gray-6);
+  --sl-color-bg-accent: var(--sl-color-accent);
+  --sl-color-hairline-light: var(--sl-color-gray-6);
+  --sl-color-hairline-shade: var(--sl-color-gray-6);
+  --sl-color-backdrop-overlay: hsla(0, 0%, 30%, 0.66);
+}

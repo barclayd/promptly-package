@@ -3,7 +3,7 @@
 // NOT a runtime test file — bun test will not execute this.
 
 import type { LanguageModel } from 'ai';
-import type { AiParams, PromptlyClient, PromptResult } from '../types.ts';
+import type { PromptlyClient, PromptResult } from '../types.ts';
 
 // --- Type assertion helpers ---
 
@@ -30,7 +30,6 @@ declare const client: PromptlyClient;
 // --- model is required (resolver throws on failure) ---
 
 type _ModelOnResult = Expect<Equal<PromptResult['model'], LanguageModel>>;
-type _ModelOnAiParams = Expect<Equal<AiParams['model'], LanguageModel>>;
 
 // --- getPrompt() without version → latest variables ---
 
@@ -108,25 +107,4 @@ async () => {
   const latest = await client.getPrompt('type-test-prompt');
   // @ts-expect-error — latest has { city, country }, not { name }
   latest.userMessage({ name: 'Alice' });
-};
-
-// --- aiParams() narrows variables by version ---
-
-async () => {
-  // latest variables accepted without version
-  await client.aiParams('type-test-prompt', {
-    variables: { city: 'London', country: 'UK' },
-  });
-
-  // v1.0.0 variables accepted with matching version
-  await client.aiParams('type-test-prompt', {
-    version: '1.0.0',
-    variables: { name: 'Alice' },
-  });
-
-  await client.aiParams('type-test-prompt', {
-    version: '1.0.0',
-    // @ts-expect-error — latest variables rejected for v1.0.0
-    variables: { city: 'London', country: 'UK' },
-  });
 };

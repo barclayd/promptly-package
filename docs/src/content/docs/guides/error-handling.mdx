@@ -1,0 +1,118 @@
+---
+title: Error Handling
+description: Handle API errors with PromptlyError and its typed error codes.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+All API errors from the SDK throw a `PromptlyError` with a typed error code, HTTP status, and human-readable message.
+
+## Basic error handling
+
+```typescript
+import { PromptlyError } from '@promptlycms/prompts';
+
+try {
+  const result = await promptly.getPrompt('nonexistent');
+} catch (err) {
+  if (err instanceof PromptlyError) {
+    console.error(err.code);    // 'NOT_FOUND'
+    console.error(err.status);  // 404
+    console.error(err.message); // 'Prompt not found'
+  }
+}
+```
+
+## Error properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `code` | `ErrorCode` | Machine-readable error code |
+| `status` | `number` | HTTP status code from the API |
+| `message` | `string` | Human-readable error description |
+| `usage` | `unknown` | Usage data (present on `429` responses) |
+| `upgradeUrl` | `string` | Upgrade link (present on `429` responses) |
+
+## Error codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `UNAUTHORIZED` | `401` | Missing or empty API key |
+| `INVALID_KEY` | `401` | API key is invalid or revoked |
+| `NOT_FOUND` | `404` | Prompt ID does not exist |
+| `VERSION_NOT_FOUND` | `404` | Requested version does not exist |
+| `BAD_REQUEST` | `400` | Invalid request (e.g. malformed prompt ID) |
+| `USAGE_LIMIT_EXCEEDED` | `429` | Rate limit or usage quota exceeded |
+
+## Rate limiting
+
+When you hit a rate limit (`429`), the error includes usage data and an upgrade link:
+
+```typescript
+try {
+  await promptly.getPrompt('my-prompt');
+} catch (err) {
+  if (err instanceof PromptlyError && err.code === 'USAGE_LIMIT_EXCEEDED') {
+    console.log('Current usage:', err.usage);
+    console.log('Upgrade at:', err.upgradeUrl);
+  }
+}
+```
+
+## Client-side errors
+
+The SDK also throws `PromptlyError` for client-side validation issues:
+
+### Missing API key
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+
+// Throws PromptlyError with code 'UNAUTHORIZED'
+// if PROMPTLY_API_KEY is not set and no apiKey is passed
+const promptly = createPromptlyClient();
+```
+
+### Model resolution failure
+
+```typescript
+// Throws PromptlyError with code 'BAD_REQUEST'
+// if the model's provider package isn't installed
+const result = await promptly.getPrompt('uses-claude-model');
+```
+
+## Recommended patterns
+
+### Guard clause pattern
+
+```typescript
+import { PromptlyError } from '@promptlycms/prompts';
+
+const fetchPrompt = async (promptId: string) => {
+  try {
+    return await promptly.getPrompt(promptId);
+  } catch (err) {
+    if (!(err instanceof PromptlyError)) {
+      throw err;
+    }
+    if (err.code === 'NOT_FOUND') {
+      return null;
+    }
+    if (err.code === 'USAGE_LIMIT_EXCEEDED') {
+      console.warn('Rate limited, retrying after delay...');
+      await new Promise((r) => setTimeout(r, 1000));
+      return promptly.getPrompt(promptId);
+    }
+    throw err;
+  }
+};
+```
+
+<Aside type="caution">
+  Always check `err instanceof PromptlyError` before accessing error properties. Network errors and other non-API errors will not be `PromptlyError` instances.
+</Aside>
+
+## Next steps
+
+- View the full [Client API reference](/reference/client-api/)
+- Learn about [type generation](/getting-started/type-generation/)

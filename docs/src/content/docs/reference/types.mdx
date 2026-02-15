@@ -1,0 +1,228 @@
+---
+title: Types
+description: TypeScript type reference for all exported types.
+---
+
+## Core types
+
+### `PromptlyClient`
+
+The main client type returned by `createPromptlyClient()`.
+
+```typescript
+type PromptlyClient = {
+  getPrompt: <T extends string, V extends PromptVersion<T> | 'latest' = 'latest'>(
+    promptId: T,
+    options?: GetOptions<V>,
+  ) => Promise<PromptResult<VariablesFor<T, V>>>;
+
+  getPrompts: <const T extends readonly PromptRequest[]>(
+    entries: T,
+  ) => Promise<GetPromptsResults<T>>;
+};
+```
+
+### `PromptlyClientConfig`
+
+Configuration options for `createPromptlyClient()`.
+
+```typescript
+type PromptlyClientConfig = {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: (modelId: string) => import('ai').LanguageModel;
+};
+```
+
+---
+
+## Prompt types
+
+### `PromptResult<V>`
+
+The return type of `getPrompt()`.
+
+```typescript
+type PromptResult<V extends Record<string, string> = Record<string, string>> =
+  Omit<PromptResponse, 'userMessage'> & {
+    userMessage: PromptMessage<V>;
+    temperature: number;
+    model: import('ai').LanguageModel;
+  };
+```
+
+### `PromptMessage<V>`
+
+A callable function for template variable interpolation. Also has a `toString()` method that returns the raw template string.
+
+```typescript
+type PromptMessage<V extends Record<string, string> = Record<string, string>> = {
+  (variables: V): string;
+  toString(): string;
+};
+```
+
+### `PromptResponse`
+
+The raw API response shape.
+
+```typescript
+type PromptResponse = {
+  promptId: string;
+  promptName: string;
+  version: string;
+  systemMessage: string;
+  userMessage: string;
+  config: PromptConfig;
+  publishedVersions?: PublishedVersion[];
+};
+```
+
+### `PromptConfig`
+
+```typescript
+type PromptConfig = {
+  schema: SchemaField[];
+  model: string;
+  temperature: number;
+  inputData: unknown;
+  inputDataRootName: string | null;
+};
+```
+
+### `PublishedVersion`
+
+```typescript
+type PublishedVersion = {
+  version: string;
+  userMessage: string;
+};
+```
+
+---
+
+## Request/option types
+
+### `PromptRequest`
+
+Used with `getPrompts()` for batch fetching.
+
+```typescript
+type PromptRequest = {
+  promptId: string;
+  version?: string;
+};
+```
+
+### `GetOptions<V>`
+
+Options for `getPrompt()`.
+
+```typescript
+type GetOptions<V extends string = string> = {
+  version?: V;
+};
+```
+
+---
+
+## Type system types
+
+These types power the declaration merging and type narrowing system.
+
+### `PromptVariableMap`
+
+Empty interface augmented by codegen. Must remain an `interface` (not `type`) for declaration merging to work.
+
+```typescript
+interface PromptVariableMap {}
+```
+
+### `PromptId`
+
+Suggests known prompt IDs while accepting any string.
+
+```typescript
+type PromptId = keyof PromptVariableMap | (string & {});
+```
+
+### `PromptVersion<Id>`
+
+Resolves to known version strings for a prompt ID, excluding `'latest'`.
+
+```typescript
+type PromptVersion<Id extends string> =
+  Id extends keyof PromptVariableMap
+    ? Exclude<keyof PromptVariableMap[Id], 'latest'>
+    : string;
+```
+
+### `VariablesFor<Id, Ver>`
+
+Resolves the variable shape for a prompt ID and version. Falls back to `Record<string, string>` for unknown IDs or versions.
+
+```typescript
+type VariablesFor<Id extends string, Ver extends string = 'latest'> =
+  Id extends keyof PromptVariableMap
+    ? Ver extends keyof PromptVariableMap[Id]
+      ? PromptVariableMap[Id][Ver]
+      : Record<string, string>
+    : Record<string, string>;
+```
+
+### `GetPromptsResults<T>`
+
+Mapped tuple type that types each position in batch results.
+
+```typescript
+type GetPromptsResults<T extends readonly PromptRequest[]> = {
+  [K in keyof T]: T[K] extends {
+    promptId: infer Id extends string;
+    version: infer Ver extends string;
+  }
+    ? PromptResult<VariablesFor<Id, Ver>>
+    : T[K] extends { promptId: infer Id extends string }
+      ? PromptResult<VariablesFor<Id, 'latest'>>
+      : PromptResult;
+};
+```
+
+---
+
+## Error types
+
+### `PromptlyError`
+
+```typescript
+class PromptlyError extends Error {
+  readonly code: ErrorCode;
+  readonly status: number;
+  readonly usage?: unknown;
+  readonly upgradeUrl?: string;
+}
+```
+
+### `ErrorCode`
+
+```typescript
+type ErrorCode =
+  | 'UNAUTHORIZED'
+  | 'INVALID_KEY'
+  | 'NOT_FOUND'
+  | 'VERSION_NOT_FOUND'
+  | 'BAD_REQUEST'
+  | 'USAGE_LIMIT_EXCEEDED';
+```
+
+### `ErrorResponse`
+
+The raw error response shape from the API.
+
+```typescript
+type ErrorResponse = {
+  error: string;
+  code: ErrorCode;
+  usage?: unknown;
+  upgradeUrl?: string;
+};
+```

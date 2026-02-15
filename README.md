@@ -1,11 +1,12 @@
 # @promptlycms/prompts
 
-TypeScript SDK for the [Promptly CMS](https://promptlycms.com) API. Fetch prompts at runtime, get typed template variables via codegen, and integrate with the [Vercel AI SDK](https://sdk.vercel.ai).
+TypeScript SDK for the [Promptly CMS](https://promptlycms.com) API. Stop hardcoding prompts in your codebase — manage them in a purpose-built CMS with versioning and instant publishing, then fetch them at runtime with full type safety.
 
-- **Runtime client** — `getPrompt()`, `getPrompts()`, `aiParams()` with full TypeScript support
+- **Zero hardcoded prompts** — fetch prompts at runtime; update wording, models, and settings from the [CMS](https://promptlycms.com) without code changes or redeploys
+- **Runtime client** — `getPrompt()` and `getPrompts()` with full TypeScript support
 - **Codegen CLI** — generates typed template variables via declaration merging
-- **AI SDK integration** — spread-ready params for `generateText` / `streamText`
-- **Model auto-detection** — resolves Anthropic, OpenAI, Google, and Mistral models automatically
+- **AI SDK integration** — destructure directly into [Vercel AI SDK](https://ai-sdk.dev/) `generateText` / `streamText`
+- **Any AI provider** — supports [all providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support) supported by the Vercel AI SDK
 - **Structured output** — Zod schemas built from CMS-defined output schemas
 
 ## Install
@@ -117,22 +118,22 @@ welcomePrompt.userMessage({ email: 'a@b.com', subject: 'Hi' });
 
 ## AI SDK integration
 
-`aiParams()` returns an object you can spread directly into Vercel AI SDK functions:
+Destructure `getPrompt()` and pass the properties directly to Vercel AI SDK functions:
 
 ```typescript
 import { generateText } from 'ai';
 
-const params = await promptly.aiParams('my-prompt', {
-  variables: { name: 'Alice', task: 'coding' },
-});
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('my-prompt');
 
 const { text } = await generateText({
-  ...params,
-  // model is already included from your CMS prompt config
+  model,
+  system: systemMessage,
+  prompt: userMessage({ name: 'Alice', task: 'coding' }),
+  temperature,
 });
 ```
 
-The model configured in the CMS is auto-resolved to the correct AI SDK provider. If the prompt has a structured output schema defined in the CMS, `params.output` is automatically populated with a Zod schema wrapped in `Output.object()`.
+The model configured in the CMS is auto-resolved to the correct AI SDK provider.
 
 ## Model auto-detection
 
@@ -220,7 +221,7 @@ try {
 | `baseUrl` | `string` | No       | API base URL (default: `https://api.promptlycms.com`) |
 | `model`   | `(modelId: string) => LanguageModel` | No | Custom model resolver — overrides auto-detection |
 
-Returns a `PromptlyClient` with `getPrompt()`, `getPrompts()`, and `aiParams()` methods.
+Returns a `PromptlyClient` with `getPrompt()` and `getPrompts()` methods.
 
 ### `client.getPrompt(promptId, options?)`
 
@@ -233,15 +234,6 @@ Fetch a single prompt. Returns `PromptResult` with typed `userMessage` when code
 ### `client.getPrompts(entries)`
 
 Fetch multiple prompts in parallel. Accepts `PromptRequest[]` and returns a typed tuple matching the input order.
-
-### `client.aiParams(promptId, options?)`
-
-Fetch a prompt and return params ready to spread into AI SDK functions (`system`, `prompt`, `temperature`, `model`, and optionally `output`).
-
-| Option      | Type                    | Description                    |
-|-------------|-------------------------|--------------------------------|
-| `version`   | `string`                | Specific version to fetch      |
-| `variables` | `Record<string, string>` | Template variables to interpolate |
 
 ### `@promptlycms/prompts/schema`
 

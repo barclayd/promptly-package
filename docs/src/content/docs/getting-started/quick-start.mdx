@@ -1,0 +1,110 @@
+---
+title: Quick Start
+description: Create a client, fetch a prompt, and use it with the Vercel AI SDK in under 5 minutes.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+This guide walks you through the basic workflow: setting your API key, creating a client, fetching a prompt, and using it with the Vercel AI SDK. By the end, your prompts will be managed in the [Promptly CMS](https://promptlycms.com) — not hardcoded in your codebase.
+
+<Steps>
+
+1. **Set your API key**
+
+   Add your Promptly API key to your environment. Create a `.env` file in your project root:
+
+   ```bash title=".env"
+   PROMPTLY_API_KEY=pk_live_...
+   ```
+
+   <Aside>
+     Get your API key from the [Promptly CMS dashboard](https://app.promptlycms.com/settings?apiKeys). The SDK reads `PROMPTLY_API_KEY` from the environment automatically if no `apiKey` is passed to the client.
+   </Aside>
+
+2. **Create a client**
+
+   ```typescript title="src/index.ts"
+   import { createPromptlyClient } from '@promptlycms/prompts';
+
+   const promptly = createPromptlyClient();
+   ```
+
+   You can omit `apiKey` if `PROMPTLY_API_KEY` is set in your environment — the SDK picks it up automatically.
+
+3. **Fetch a prompt**
+
+   <Aside type="caution">
+     Prompts must be **published** before the SDK can fetch them — drafts are not accessible via the API. In the CMS editor, click **Publish** in the top-right corner to make your prompt available.
+   </Aside>
+
+   ```typescript title="src/index.ts"
+   const result = await promptly.getPrompt('JPxlUpstuhXB5OwOtKPpj');
+
+   // Prompt content — exactly what you wrote in the editor
+   result.systemMessage; // 'You are a helpful assistant.'
+   result.promptName;    // 'Code Review Helper'
+
+   // Model config — from the sidebar settings in the editor
+   result.model;         // LanguageModel (auto-resolved)
+   result.temperature;   // 0.7
+
+   // Template variables — interpolate ${variables} from your user message
+   const message = result.userMessage({
+     name: 'Alice',
+     task: 'code review',
+   });
+   ```
+
+   <Aside type="tip" title="Finding your prompt ID">
+     You can find the prompt ID in two ways:
+     - **From the URL** — it's the last segment: <code>https://app.promptlycms.com/prompts/<strong style="background: hsla(215, 60%, 50%, 0.25); border-radius: 4px; text-decoration: underline;">JPxlUpstuhXB5OwOtKPpj</strong></code>
+     - **From the menu** — click **File → Copy Prompt ID** in the editor
+   </Aside>
+
+4. **Use with the [Vercel AI SDK](https://ai-sdk.dev/)**
+
+   Destructure `getPrompt()` and pass the properties directly to `generateText()` or `streamText()`:
+
+   ```typescript title="src/index.ts"
+   import { generateText } from 'ai';
+
+   const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('JPxlUpstuhXB5OwOtKPpj');
+
+   const { text } = await generateText({
+     model,
+     system: systemMessage,
+     prompt: userMessage({ name: 'Alice', task: 'code review' }),
+     temperature,
+   });
+   ```
+
+</Steps>
+
+## Complete example
+
+```typescript title="src/index.ts"
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const { getPrompt } = createPromptlyClient();
+
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'JPxlUpstuhXB5OwOtKPpj',
+);
+
+const { text } = await generateText({
+  model,
+  system: systemMessage,
+  prompt: userMessage({ name: 'Alice', task: 'code review' }),
+  temperature,
+});
+
+console.log(text);
+```
+
+## Next steps
+
+- [Generate types](/getting-started/type-generation/) for autocomplete and type safety
+- Learn about [fetching prompts](/guides/fetching-prompts/) in detail
+- Explore the [AI SDK integration](/guides/ai-sdk-integration/) guide
+- Manage your prompts, models, and versions from the [Promptly CMS dashboard](https://promptlycms.com)

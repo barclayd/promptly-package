@@ -1,8 +1,5 @@
 import { createErrorFromResponse, PromptlyError } from './errors.ts';
-import { buildZodSchema } from './schema/builder.ts';
 import type {
-  AiParams,
-  AiParamsOptions,
   GetOptions,
   PromptlyClient,
   PromptlyClientConfig,
@@ -206,32 +203,5 @@ export const createPromptlyClient = (
     return results;
   };
 
-  const aiParams = async (promptId: string, options?: AiParamsOptions) => {
-    const prompt = await fetchPrompt(promptId, {
-      version: options?.version,
-    });
-
-    const userMessage = options?.variables
-      ? interpolate(prompt.userMessage, options.variables)
-      : prompt.userMessage;
-
-    const model = await modelResolver(prompt.config.model);
-
-    const result = {
-      system: prompt.systemMessage,
-      prompt: userMessage,
-      temperature: prompt.config.temperature,
-      model,
-    } as AiParams;
-
-    if (prompt.config.schema && prompt.config.schema.length > 0) {
-      const schema = buildZodSchema(prompt.config.schema);
-      const { Output } = await import('ai');
-      result.output = Output.object({ schema });
-    }
-
-    return result;
-  };
-
-  return { getPrompt, getPrompts, aiParams } as PromptlyClient;
+  return { getPrompt, getPrompts } as PromptlyClient;
 };

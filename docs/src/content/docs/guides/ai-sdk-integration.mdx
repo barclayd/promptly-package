@@ -1,0 +1,127 @@
+---
+title: AI SDK Integration
+description: Use getPrompt() to integrate Promptly CMS prompts with Vercel AI SDK functions.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The `getPrompt()` method returns everything you need to integrate with the [Vercel AI SDK](https://ai-sdk.dev/). Destructure the result and pass properties directly to `generateText()`, `streamText()`, and other AI SDK functions — no prompts hardcoded in your application code.
+
+## Basic usage
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const { getPrompt } = createPromptlyClient();
+
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'my-prompt',
+);
+
+const { text } = await generateText({
+  model,
+  system: systemMessage,
+  prompt: userMessage({ name: 'Alice', task: 'code review' }),
+  temperature,
+});
+```
+
+## What `getPrompt()` returns
+
+```typescript
+const result = await promptly.getPrompt('my-prompt');
+
+// result contains:
+// {
+//   systemMessage: 'You are a helpful assistant...',
+//   userMessage: PromptMessage,   // callable template function
+//   temperature: 0.7,
+//   model: LanguageModel,         // auto-resolved from CMS config
+//   promptId: 'my-prompt',
+//   promptName: 'My Prompt',
+//   version: '1.0.0',
+//   config: PromptConfig,
+// }
+```
+
+- **`systemMessage`** — the system message from the CMS
+- **`userMessage`** — callable function that interpolates template variables; call `String(userMessage)` for the raw template
+- **`temperature`** — the temperature setting from the CMS
+- **`model`** — automatically resolved from the model configured in the CMS (see [Model Resolution](/guides/model-resolution/))
+
+## With `generateText()`
+
+```typescript
+import { generateText } from 'ai';
+
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('summarize');
+
+const { text } = await generateText({
+  model,
+  system: systemMessage,
+  prompt: userMessage({ content: articleText }),
+  temperature,
+});
+```
+
+## With `streamText()`
+
+```typescript
+import { streamText } from 'ai';
+
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('chat-assistant');
+
+const stream = streamText({
+  model,
+  system: systemMessage,
+  prompt: userMessage({ context: conversationHistory }),
+  temperature,
+});
+
+for await (const chunk of stream.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## With messages array
+
+For full control over the messages array (e.g. for provider-specific options like cache control):
+
+```typescript
+import { generateText } from 'ai';
+
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('review-prompt');
+
+const { text } = await generateText({
+  model,
+  system: systemMessage,
+  temperature,
+  messages: [
+    {
+      role: 'user',
+      content: userMessage({ pickupLocation: 'London', items: 'sofa' }),
+      providerOptions: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+  ],
+});
+```
+
+## Version pinning
+
+Fetch a specific prompt version:
+
+```typescript
+const { userMessage, model, temperature, systemMessage } = await promptly.getPrompt('my-prompt', {
+  version: '2.0.0',
+});
+```
+
+## Next steps
+
+- Learn how [model resolution](/guides/model-resolution/) works
+- See [structured output](/guides/structured-output/) for Zod schemas from the CMS
+- View the full [client API reference](/reference/client-api/)
+- Manage your prompts and models from the [Promptly CMS dashboard](https://promptlycms.com)

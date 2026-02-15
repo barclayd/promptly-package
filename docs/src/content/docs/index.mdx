@@ -1,0 +1,100 @@
+---
+title: 'PromptlyCMS'
+description: Manage, test, and deploy AI prompts without touching code. Empower your whole team to iterate on prompts while developers focus on building.
+template: splash
+hero:
+  title: 'Your prompts don''t belong in <span class="gradient"><span class="gradient-text">your codebase</span><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M0,8 Q50,0 100,8 T200,8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg></span>'
+  tagline: Manage, test, and deploy AI prompts without touching code. Empower your whole team to iterate on prompts while developers focus on building.
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/barclayd/promptly-package
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Install
+
+<Tabs>
+  <TabItem label="bun">
+    ```bash
+    bun add @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @promptlycms/prompts
+    ```
+  </TabItem>
+</Tabs>
+
+## Features
+
+<CardGrid>
+  <Card title="Zero Hardcoded Prompts" icon="rocket">
+    Fetch prompts at runtime with `getPrompt()` and `getPrompts()`. Update wording, model, and temperature from the [CMS](https://promptlycms.com) — no code changes, no redeploys.
+  </Card>
+  <Card title="AI SDK Integration" icon="puzzle">
+    `getPrompt()` returns model, temperature, and messages ready for [Vercel AI SDK](https://ai-sdk.dev/) functions like `generateText()` and `streamText()`.
+  </Card>
+  <Card title="Multi-Model Auto-Detection" icon="setting">
+    Supports [all AI SDK providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support). Automatically resolves models from your CMS config — no manual provider setup.
+  </Card>
+  <Card title="Codegen for Type Safety" icon="seti:typescript">
+    Run `npx promptly generate` to generate typed template variables via declaration merging. Full autocomplete in your editor.
+  </Card>
+</CardGrid>
+
+## Get started in 3 steps
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const { getPrompt } = createPromptlyClient();
+
+// fetch your prompt at runtime — nothing hardcoded in your codebase
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'upsellMessage',
+);
+
+const { text } = await generateText({
+  model,
+  messages: [
+    {
+      role: 'system',
+      content: systemMessage,
+    },
+    {
+      role: 'user',
+      content: userMessage({
+        username,
+        persuasionLevel: 1,
+        recentPurchases,
+      }),
+    },
+  ],
+  temperature,
+});
+
+console.log(text);
+```
+
+<Aside>
+  Manage your prompts, models, and versions from the [Promptly CMS dashboard](https://promptlycms.com). Learn more about what Promptly CMS can do at [promptlycms.com](https://promptlycms.com).
+</Aside>

@@ -1,8 +1,6 @@
 export { createPromptlyClient, getSdkModelId, interpolate } from './client.ts';
 export { PromptlyError } from './errors.ts';
 export type {
-  AiParams,
-  AiParamsOptions,
   ErrorCode,
   ErrorResponse,
   GetOptions,

@@ -1,0 +1,90 @@
+---
+title: Structured Output
+description: Use Zod schemas from your CMS to get validated, typed AI responses.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When you define an output schema in the Promptly CMS, the SDK can automatically build [Zod](https://zod.dev/) schemas at runtime for use with the Vercel AI SDK.
+
+## How it works
+
+1. Define a structured output schema in the CMS using the schema builder
+2. The schema fields are included in the prompt's API response
+3. Use `buildZodSchema()` to build a Zod schema from these fields at runtime
+4. Pass it to the AI SDK's `Output.object()` for validated, typed responses
+
+## Schema building
+
+For more control, use the `buildZodSchema` function from the `/schema` subpath export:
+
+```typescript
+import { buildZodSchema } from '@promptlycms/prompts/schema';
+
+const result = await promptly.getPrompt('extract-entities');
+
+// Build a Zod schema from the CMS schema fields
+const schema = buildZodSchema(result.config.schema);
+
+// Use it however you need
+const validated = schema.parse(data);
+```
+
+## Schema codegen
+
+Generate Zod source code as a string for use in codegen pipelines:
+
+```typescript
+import { schemaFieldsToZodSource } from '@promptlycms/prompts/schema';
+
+const result = await promptly.getPrompt('extract-entities');
+const source = schemaFieldsToZodSource(result.config.schema);
+
+// source is a string like:
+// z.object({
+//   name: z.string().min(1, 'Required'),
+//   age: z.number().int().positive(),
+//   tags: z.array(z.string()),
+// })
+```
+
+## Supported field types
+
+The schema builder supports all common Zod types:
+
+| Type | Zod equivalent |
+|------|---------------|
+| `string` | `z.string()` |
+| `number` | `z.number()` |
+| `boolean` | `z.boolean()` |
+| `date` | `z.date()` |
+| `bigint` | `z.bigint()` |
+| `enum` | `z.enum([...])` |
+| `literal` | `z.literal(...)` |
+| `array` | `z.array(...)` |
+| `object` | `z.object({})` |
+| `record` | `z.record(...)` |
+| `map` | `z.map(...)` |
+| `set` | `z.set(...)` |
+| `union` | `z.union([...])` |
+| `intersection` | `z.intersection(...)` |
+| `null` | `z.null()` |
+| `undefined` | `z.undefined()` |
+| `any` | `z.any()` |
+| `unknown` | `z.unknown()` |
+
+### Validations
+
+Fields can include validation rules:
+
+- **Size**: `min`, `max`, `length`
+- **String**: `email`, `url`, `uuid`, `cuid`, `cuid2`, `ulid`, `regex`, `startsWith`, `endsWith`, `datetime`, `ip`
+- **Number**: `int`, `positive`, `negative`, `multipleOf`, `finite`, `safe`
+- **Transforms**: `trim`, `toLowerCase`, `toUpperCase`
+- **Modifiers**: `optional`, `nullable`, `nullish`, `default`, `catch`, `readonly`
+- **Coercion**: Fields can be marked as coercible (e.g. `z.coerce.number()`)
+
+## Next steps
+
+- Learn about [error handling](/guides/error-handling/)
+- See the [Schema API reference](/reference/schema-api/) for full details

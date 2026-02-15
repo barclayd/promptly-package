@@ -162,19 +162,6 @@ export type GetOptions<V extends string = string> = {
   version?: V;
 };
 
-export type AiParamsOptions = {
-  version?: string;
-  variables?: Record<string, string>;
-};
-
-export type AiParams = {
-  system: string;
-  prompt: string;
-  temperature: number;
-  model: import('ai').LanguageModel;
-  output?: ReturnType<typeof import('ai').Output.object>;
-};
-
 export type PromptlyClient = {
   getPrompt: <
     T extends string,
@@ -187,12 +174,4 @@ export type PromptlyClient = {
   getPrompts: <const T extends readonly PromptRequest[]>(
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
-
-  aiParams: <
-    T extends string,
-    V extends PromptVersion<T> | 'latest' = 'latest',
-  >(
-    promptId: T,
-    options?: { version?: V; variables?: VariablesFor<T, V> },
-  ) => Promise<AiParams>;
 };

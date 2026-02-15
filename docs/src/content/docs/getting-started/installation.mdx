@@ -1,0 +1,145 @@
+---
+title: Installation
+description: Install @promptlycms/prompts and its peer dependencies.
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+## Install the package
+
+<Tabs>
+  <TabItem label="bun">
+    ```bash
+    bun add @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add @promptlycms/prompts
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add @promptlycms/prompts
+    ```
+  </TabItem>
+</Tabs>
+
+## Peer dependencies
+
+The SDK requires [Zod](https://zod.dev) v4, the [Vercel AI SDK](https://sdk.vercel.ai), and TypeScript 5+:
+
+<Tabs>
+  <TabItem label="bun">
+    ```bash
+    bun add zod ai typescript
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install zod ai typescript
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn add zod ai typescript
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add zod ai typescript
+    ```
+  </TabItem>
+</Tabs>
+
+## Provider SDKs
+
+The SDK supports all providers supported by the [Vercel AI SDK](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support). Install the AI provider SDK(s) your prompts use — only the providers configured in your CMS prompts need to be installed.
+
+<Tabs>
+  <TabItem label="bun">
+    ```bash
+    # Anthropic (Claude models)
+    bun add @ai-sdk/anthropic
+
+    # OpenAI (GPT / o-series models)
+    bun add @ai-sdk/openai
+
+    # Google (Gemini models)
+    bun add @ai-sdk/google
+
+    # Mistral (Mistral / Mixtral models)
+    bun add @ai-sdk/mistral
+    ```
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    # Anthropic (Claude models)
+    npm install @ai-sdk/anthropic
+
+    # OpenAI (GPT / o-series models)
+    npm install @ai-sdk/openai
+
+    # Google (Gemini models)
+    npm install @ai-sdk/google
+
+    # Mistral (Mistral / Mixtral models)
+    npm install @ai-sdk/mistral
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    # Anthropic (Claude models)
+    yarn add @ai-sdk/anthropic
+
+    # OpenAI (GPT / o-series models)
+    yarn add @ai-sdk/openai
+
+    # Google (Gemini models)
+    yarn add @ai-sdk/google
+
+    # Mistral (Mistral / Mixtral models)
+    yarn add @ai-sdk/mistral
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    # Anthropic (Claude models)
+    pnpm add @ai-sdk/anthropic
+
+    # OpenAI (GPT / o-series models)
+    pnpm add @ai-sdk/openai
+
+    # Google (Gemini models)
+    pnpm add @ai-sdk/google
+
+    # Mistral (Mistral / Mixtral models)
+    pnpm add @ai-sdk/mistral
+    ```
+  </TabItem>
+</Tabs>
+
+<Aside>
+  Install only the providers your prompts use. The SDK dynamically imports provider packages at runtime, so unused providers won't be loaded or bundled.
+</Aside>
+
+## Version compatibility
+
+| Package | Required version |
+|---------|-----------------|
+| `zod` | `^4.0.0` |
+| `ai` | `^4.0 \|\| ^5.0 \|\| ^6.0` |
+| `typescript` | `^5` |
+| `@ai-sdk/anthropic` | `^3.0` |
+| `@ai-sdk/openai` | `^3.0` |
+| `@ai-sdk/google` | `^3.0` |
+| `@ai-sdk/mistral` | `^3.0` |
+
+## Next steps
+
+Once installed, follow the [Quick Start](/getting-started/quick-start/) guide to create your first client and fetch a prompt. If you haven't already, [create a free account on Promptly CMS](https://promptlycms.com) to start managing your prompts.
