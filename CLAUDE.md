@@ -112,7 +112,9 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## Project
 
-This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides a runtime client for fetching prompts and a codegen CLI for generating typed Zod schemas.
+This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides:
+- A **runtime client** for fetching prompts (`get`, `getPrompts`, `aiParams`)
+- A **codegen CLI** that generates `promptly-env.d.ts` with typed template variables via declaration merging
 
 ### Key scripts
 
@@ -124,16 +126,32 @@ This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It
 
 ### Project structure
 
-- `src/client.ts` — runtime client (`createPromptClient`) with `get()` and `aiParams()` methods
+- `src/client.ts` — runtime client (`createPromptClient`) with `get()`, `getPrompts()`, and `aiParams()` methods
 - `src/schema/builder.ts` — builds Zod schemas from `SchemaField[]` at runtime
 - `src/schema/codegen.ts` — generates Zod source code strings from `SchemaField[]`
 - `src/errors.ts` — `PromptlyError` class with `code`, `status`, `usage`, `upgradeUrl`
-- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, etc.)
+- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, `PromptVariableMap`, etc.)
+- `src/cli/generate.ts` — codegen: `fetchAllPrompts()`, `generateTypeDeclaration()`, `generate()`
+- `src/cli/index.ts` — CLI entry point (`promptly generate` command)
 - `src/__tests__/` — flat test files (no `describe` nesting)
+
+### Type system architecture
+
+Uses **declaration merging** (Prisma/GraphQL Code Generator pattern):
+- `PromptVariableMap` — empty interface in `src/types.ts`, augmented by generated `promptly-env.d.ts`
+- `PromptId` — `keyof PromptVariableMap | (string & {})` for autocomplete with fallback
+- `VariablesFor<Id>` — conditional type that narrows to typed variables for known IDs, falls back to `Record<string, string>`
+- `PromptMessage<V>` / `PromptResult<V>` — generic types with `Record<string, string>` defaults
+- `GetPromptsResults<T>` — mapped tuple type for batch `getPrompts()` that types each position
+- `PromptVariableMap` must remain an `interface` (not `type`) for declaration merging to work
+
+### Codegen flow
+
+`npx promptly generate` reads `PROMPTLY_API_KEY` from env (or `--api-key` flag), calls `GET /prompts` to fetch all prompts, extracts `${var}` template variables from `userMessage`, and writes `promptly-env.d.ts` with module augmentation. No config file needed.
 
 ### Dependencies
 
-- **Runtime:** citty, jiti
+- **Runtime:** citty
 - **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5
 - **Dev:** @biomejs/biome, @changesets/cli, @changesets/changelog-github, @types/bun, @typescript/native-preview, tsup
 
