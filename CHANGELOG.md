@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.1.2
+
+### Patch Changes
+
+- [#6](https://github.com/barclayd/promptly-package/pull/6) [`5aa8d33`](https://github.com/barclayd/promptly-package/commit/5aa8d33f842391c804532ac9a20707700f3fe4d0) Thanks [@barclayd](https://github.com/barclayd)! - Add documentation site built with Astro Starlight
+
 ## 0.1.1
 
 ### Patch Changes
