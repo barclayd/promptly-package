@@ -50,9 +50,9 @@ jobs:
             ### :package: Canary Release
 
             ```sh
-            npm install @promptly/prompts@canary
+            npm install @promptlycms/prompts@canary
             # or
-            bun add @promptly/prompts@canary
+            bun add @promptlycms/prompts@canary
             ```
 
             **Version:** `${{ env.CANARY_VERSION }}`

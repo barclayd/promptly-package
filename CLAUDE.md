@@ -112,7 +112,7 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 
 ## Project
 
-This is `@promptly/prompts` — a TypeScript SDK for the Promptly CMS API. It provides a runtime client for fetching prompts and a codegen CLI for generating typed Zod schemas.
+This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides a runtime client for fetching prompts and a codegen CLI for generating typed Zod schemas.
 
 ### Key scripts
 
@@ -178,4 +178,4 @@ When making a user-facing change, run `bunx changeset` and follow the prompts to
 
 ### npm authentication
 
-Uses OIDC trusted publishing — no `NPM_TOKEN` secret needed. Requires a trusted publisher connection configured on npmjs.com for the `@promptly/prompts` package pointing to the `release.yml` workflow in `barclayd/promptly-package`.
+Uses OIDC trusted publishing — no `NPM_TOKEN` secret needed. Requires a trusted publisher connection configured on npmjs.com for the `@promptlycms/prompts` package pointing to the `release.yml` workflow in `barclayd/promptly-package`.

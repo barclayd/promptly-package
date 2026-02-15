@@ -15,7 +15,7 @@ const generateCommand = defineCommand({
     },
   },
   run: async ({ args }) => {
-    console.log('@promptly/prompts — generating...\n');
+    console.log('@promptlycms/prompts — generating...\n');
 
     const config = await loadConfig(process.cwd());
 
@@ -33,7 +33,7 @@ const main = defineCommand({
   meta: {
     name: 'promptly',
     version: '0.1.0',
-    description: 'CLI for @promptly/prompts',
+    description: 'CLI for @promptlycms/prompts',
   },
   subCommands: {
     generate: generateCommand,
