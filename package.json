@@ -32,8 +32,7 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "citty": "^0.2.1",
-    "jiti": "^2.6.1"
+    "citty": "^0.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.15",

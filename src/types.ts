@@ -161,17 +161,3 @@ export type PromptClient = {
 
   aiParams: (promptId: string, options?: AiParamsOptions) => Promise<AiParams>;
 };
-
-// --- Codegen types ---
-
-export type PromptEntry = {
-  id: string;
-  name: string;
-  version?: string;
-};
-
-export type PromptlyConfig = {
-  apiKey: string;
-  prompts: PromptEntry[];
-  outputDir?: string;
-};
