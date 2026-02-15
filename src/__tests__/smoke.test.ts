@@ -11,16 +11,28 @@ const TEST_API_KEY = process.env.TEST_PROMPT_API_KEY;
 const TEST_PROMPT_ID = process.env.TEST_PROMPT_ID;
 const hasEnv = Boolean(TEST_API_KEY && TEST_PROMPT_ID);
 
-const setup = () =>
-  createPromptlyClient({
-    apiKey: TEST_API_KEY!,
-  });
+const setupWithEnv = () => {
+  const apiKey = TEST_API_KEY;
+  const promptId = TEST_PROMPT_ID;
+  if (!apiKey || !promptId) {
+    throw new Error('TEST_PROMPT_API_KEY and TEST_PROMPT_ID required');
+  }
+  return { client: createPromptlyClient({ apiKey }), promptId };
+};
+
+const setupApiKey = () => {
+  const apiKey = TEST_API_KEY;
+  if (!apiKey) {
+    throw new Error('TEST_PROMPT_API_KEY required');
+  }
+  return apiKey;
+};
 
 test.skipIf(!hasEnv)('smoke: get() fetches a real prompt', async () => {
-  const client = setup();
-  const result = await client.get(TEST_PROMPT_ID!);
+  const { client, promptId } = setupWithEnv();
+  const result = await client.get(promptId);
 
-  expect(result.promptId).toBe(TEST_PROMPT_ID!);
+  expect(result.promptId).toBe(promptId);
   expect(typeof result.systemMessage).toBe('string');
   expect(typeof result.userMessage).toBe('function');
   expect(typeof result.temperature).toBe('number');
@@ -29,8 +41,8 @@ test.skipIf(!hasEnv)('smoke: get() fetches a real prompt', async () => {
 test.skipIf(!hasEnv)(
   'smoke: get() userMessage interpolates variables',
   async () => {
-    const client = setup();
-    const result = await client.get(TEST_PROMPT_ID!);
+    const { client, promptId } = setupWithEnv();
+    const result = await client.get(promptId);
 
     const template = String(result.userMessage);
     expect(typeof template).toBe('string');
@@ -56,19 +68,19 @@ test.skipIf(!hasEnv)(
 test.skipIf(!hasEnv)(
   'smoke: getPrompts() fetches multiple prompts',
   async () => {
-    const client = setup();
-    const results = await client.getPrompts([{ promptId: TEST_PROMPT_ID! }]);
+    const { client, promptId } = setupWithEnv();
+    const results = await client.getPrompts([{ promptId }]);
 
     expect(results).toHaveLength(1);
-    expect(results[0].promptId).toBe(TEST_PROMPT_ID!);
+    expect(results[0].promptId).toBe(promptId);
     expect(typeof results[0].userMessage).toBe('function');
     expect(typeof results[0].temperature).toBe('number');
   },
 );
 
 test.skipIf(!hasEnv)('smoke: aiParams() returns AI SDK params', async () => {
-  const client = setup();
-  const params = await client.aiParams(TEST_PROMPT_ID!);
+  const { client, promptId } = setupWithEnv();
+  const params = await client.aiParams(promptId);
 
   expect(typeof params.system).toBe('string');
   expect(typeof params.prompt).toBe('string');
@@ -78,7 +90,8 @@ test.skipIf(!hasEnv)('smoke: aiParams() returns AI SDK params', async () => {
 test.skipIf(!TEST_API_KEY)(
   'smoke: get() throws PromptlyError for nonexistent prompt',
   async () => {
-    const client = setup();
+    const apiKey = setupApiKey();
+    const client = createPromptlyClient({ apiKey });
 
     try {
       await client.get('nonexistent-id-xxx');
@@ -95,12 +108,18 @@ test.skipIf(!TEST_API_KEY)(
 test.skipIf(!TEST_API_KEY)(
   'smoke: fetchAllPrompts() returns array of prompts with publishedVersions',
   async () => {
-    const prompts = await fetchAllPrompts(TEST_API_KEY!);
+    const apiKey = setupApiKey();
+    const prompts = await fetchAllPrompts(apiKey);
 
     expect(Array.isArray(prompts)).toBe(true);
     expect(prompts.length).toBeGreaterThan(0);
 
-    const first = prompts[0]!;
+    const first = prompts[0];
+    if (!first) {
+      expect.unreachable('Expected at least one prompt');
+      return;
+    }
+
     expect(typeof first.promptId).toBe('string');
     expect(typeof first.systemMessage).toBe('string');
     expect(typeof first.userMessage).toBe('string');
@@ -108,17 +127,22 @@ test.skipIf(!TEST_API_KEY)(
     expect(typeof first.config.temperature).toBe('number');
     expect(typeof first.config.model).toBe('string');
 
-    // Verify publishedVersions is present (include_versions=true)
-    expect(Array.isArray(first.publishedVersions)).toBe(true);
-    expect(first.publishedVersions!.length).toBeGreaterThan(0);
+    const versions = first.publishedVersions;
+    if (!versions) {
+      expect.unreachable('Expected publishedVersions to be present');
+      return;
+    }
 
-    for (const pv of first.publishedVersions!) {
+    // Verify publishedVersions is present (include_versions=true)
+    expect(versions.length).toBeGreaterThan(0);
+
+    for (const pv of versions) {
       expect(typeof pv.version).toBe('string');
       expect(typeof pv.userMessage).toBe('string');
     }
 
     // Current version should appear in publishedVersions
-    const currentInVersions = first.publishedVersions!.find(
+    const currentInVersions = versions.find(
       (pv) => pv.version === first.version,
     );
     expect(currentInVersions).toBeDefined();
@@ -128,11 +152,17 @@ test.skipIf(!TEST_API_KEY)(
 test.skipIf(!hasEnv)(
   'smoke: fetchAllPrompts() includes the test prompt',
   async () => {
-    const prompts = await fetchAllPrompts(TEST_API_KEY!);
-    const match = prompts.find((p) => p.promptId === TEST_PROMPT_ID);
+    const { promptId } = setupWithEnv();
+    const apiKey = setupApiKey();
+    const prompts = await fetchAllPrompts(apiKey);
+    const match = prompts.find((p) => p.promptId === promptId);
 
-    expect(match).toBeDefined();
-    expect(match!.promptId).toBe(TEST_PROMPT_ID!);
+    if (!match) {
+      expect.unreachable('Expected test prompt to be in results');
+      return;
+    }
+
+    expect(match.promptId).toBe(promptId);
   },
 );
 
@@ -152,7 +182,8 @@ test.skipIf(!TEST_API_KEY)(
 test.skipIf(!TEST_API_KEY)(
   'smoke: generateTypeDeclaration() produces valid declaration from real prompts',
   async () => {
-    const prompts = await fetchAllPrompts(TEST_API_KEY!);
+    const apiKey = setupApiKey();
+    const prompts = await fetchAllPrompts(apiKey);
     const declaration = generateTypeDeclaration(prompts);
 
     expect(declaration).toContain(
