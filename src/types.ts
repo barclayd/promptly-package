@@ -83,11 +83,11 @@ export interface PromptVariableMap {}
 // Suggests known prompt IDs with autocomplete, accepts any string
 export type PromptId = keyof PromptVariableMap | (string & {});
 
-// Autocomplete for known versions, accepts any string
+// Strict version type: only codegen-known versions for known prompts
 // Excludes 'latest' — it's a type-level default, not a real API version string
 export type PromptVersion<Id extends string> =
   Id extends keyof PromptVariableMap
-    ? Exclude<keyof PromptVariableMap[Id], 'latest'> | (string & {})
+    ? Exclude<keyof PromptVariableMap[Id], 'latest'>
     : string;
 
 // Resolves variables for a prompt ID + version (default: latest)
@@ -113,7 +113,7 @@ export type PromptResult<
 > = Omit<PromptResponse, 'userMessage'> & {
   userMessage: PromptMessage<V>;
   temperature: number;
-  model?: import('ai').LanguageModel;
+  model: import('ai').LanguageModel;
 };
 
 // --- Batch types ---
@@ -170,12 +170,12 @@ export type AiParams = {
   system: string;
   prompt: string;
   temperature: number;
-  model?: import('ai').LanguageModel;
+  model: import('ai').LanguageModel;
   output?: ReturnType<typeof import('ai').Output.object>;
 };
 
 export type PromptlyClient = {
-  get: <T extends string, V extends string = 'latest'>(
+  get: <T extends string, V extends PromptVersion<T> | 'latest' = 'latest'>(
     promptId: T,
     options?: GetOptions<V>,
   ) => Promise<PromptResult<VariablesFor<T, V>>>;
@@ -184,7 +184,10 @@ export type PromptlyClient = {
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
 
-  aiParams: <T extends string, V extends string = 'latest'>(
+  aiParams: <
+    T extends string,
+    V extends PromptVersion<T> | 'latest' = 'latest',
+  >(
     promptId: T,
     options?: { version?: V; variables?: VariablesFor<T, V> },
   ) => Promise<AiParams>;

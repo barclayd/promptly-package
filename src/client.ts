@@ -9,7 +9,6 @@ import type {
   PromptMessage,
   PromptRequest,
   PromptResponse,
-  PromptResult,
 } from './types.ts';
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
@@ -113,7 +112,7 @@ export const createPromptlyClient = (
   const get = async <T extends string, V extends string = 'latest'>(
     promptId: T,
     options?: GetOptions<V>,
-  ): Promise<PromptResult> => {
+  ) => {
     const response = await fetchPrompt(promptId, options);
     const model = await resolveModel(response.config.model);
     return {
@@ -124,19 +123,14 @@ export const createPromptlyClient = (
     };
   };
 
-  const getPrompts = async (
-    entries: readonly PromptRequest[],
-  ): Promise<PromptResult[]> => {
+  const getPrompts = async (entries: readonly PromptRequest[]) => {
     const results = await Promise.all(
       entries.map((entry) => get(entry.promptId, { version: entry.version })),
     );
     return results;
   };
 
-  const aiParams = async (
-    promptId: string,
-    options?: AiParamsOptions,
-  ): Promise<AiParams> => {
+  const aiParams = async (promptId: string, options?: AiParamsOptions) => {
     const prompt = await fetchPrompt(promptId, {
       version: options?.version,
     });
@@ -147,12 +141,12 @@ export const createPromptlyClient = (
 
     const model = await resolveModel(prompt.config.model);
 
-    const result: AiParams = {
+    const result = {
       system: prompt.systemMessage,
       prompt: userMessage,
       temperature: prompt.config.temperature,
       model,
-    };
+    } as AiParams;
 
     if (prompt.config.schema && prompt.config.schema.length > 0) {
       const schema = buildZodSchema(prompt.config.schema);
