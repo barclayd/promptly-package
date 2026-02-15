@@ -3,6 +3,7 @@ import type { LanguageModelV3 } from '@ai-sdk/provider';
 import {
   createPromptlyClient,
   detectProviderName,
+  getSdkModelId,
   resolveModel,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
@@ -481,7 +482,9 @@ test('getPrompt() resolves model automatically', async () => {
   const result = await client.getPrompt('my-prompt');
 
   expect(result.model).toBeDefined();
-  expect((result.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
+  expect((result.model as LanguageModelV3).modelId).toBe(
+    'claude-haiku-4-5-20251001',
+  );
 });
 
 test('getPrompt() uses model callback from config when provided', async () => {
@@ -506,7 +509,43 @@ test('aiParams() resolves model automatically', async () => {
   const params = await client.aiParams('my-prompt');
 
   expect(params.model).toBeDefined();
-  expect((params.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
+  expect((params.model as LanguageModelV3).modelId).toBe(
+    'claude-haiku-4-5-20251001',
+  );
+});
+
+// --- getSdkModelId() tests ---
+
+test('getSdkModelId() maps anthropic CMS IDs to API model IDs', () => {
+  expect(getSdkModelId('claude-haiku-4.5')).toBe('claude-haiku-4-5-20251001');
+  expect(getSdkModelId('claude-sonnet-4.5')).toBe('claude-sonnet-4-5-20250929');
+  expect(getSdkModelId('claude-opus-4.6')).toBe('claude-opus-4-6-20250917');
+  expect(getSdkModelId('claude-opus-4')).toBe('claude-opus-4-20250514');
+  expect(getSdkModelId('claude-sonnet-4')).toBe('claude-sonnet-4-20250514');
+  expect(getSdkModelId('claude-3.7-sonnet')).toBe('claude-3-7-sonnet-20250219');
+});
+
+test('getSdkModelId() maps google CMS IDs to Gemini SDK model names', () => {
+  expect(getSdkModelId('gemini-3-pro')).toBe('gemini-3.0-pro');
+  expect(getSdkModelId('gemini-3-flash')).toBe('gemini-3.0-flash');
+  expect(getSdkModelId('gemini-3-deep-think')).toBe('gemini-3.0-deep-think');
+  expect(getSdkModelId('gemini-2.5-pro')).toBe('gemini-2.5-pro-latest');
+  expect(getSdkModelId('gemini-2.5-flash')).toBe(
+    'gemini-2.5-flash-preview-05-20',
+  );
+});
+
+test('getSdkModelId() passes through unknown model IDs unchanged', () => {
+  expect(getSdkModelId('gpt-4o')).toBe('gpt-4o');
+  expect(getSdkModelId('o4-mini')).toBe('o4-mini');
+  expect(getSdkModelId('mistral-large-latest')).toBe('mistral-large-latest');
+  expect(getSdkModelId('custom-model')).toBe('custom-model');
+});
+
+test('resolveModel() uses mapped model ID for anthropic', async () => {
+  const model = await resolveModel('claude-haiku-4.5');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('claude-haiku-4-5-20251001');
 });
 
 test('getPrompt() throws for unknown provider', async () => {

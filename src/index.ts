@@ -1,4 +1,4 @@
-export { createPromptlyClient, interpolate } from './client.ts';
+export { createPromptlyClient, getSdkModelId, interpolate } from './client.ts';
 export { PromptlyError } from './errors.ts';
 export type {
   AiParams,

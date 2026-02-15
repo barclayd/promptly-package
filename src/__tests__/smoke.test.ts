@@ -104,6 +104,7 @@ test.skipIf(!hasEnv)(
     expect(model.specificationVersion).toBe('v3');
     expect(model.provider).toContain('anthropic');
     expect(model.modelId).toContain('claude');
+    expect(model.modelId).not.toContain('.');
   },
 );
 

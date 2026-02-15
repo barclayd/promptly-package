@@ -13,6 +13,25 @@ import type {
 
 const DEFAULT_BASE_URL = 'https://api.promptlycms.com';
 
+const MODEL_ID_MAP: Record<string, string> = {
+  // Anthropic: CMS display IDs → API model IDs
+  'claude-opus-4.6': 'claude-opus-4-6-20250917',
+  'claude-sonnet-4.5': 'claude-sonnet-4-5-20250929',
+  'claude-haiku-4.5': 'claude-haiku-4-5-20251001',
+  'claude-opus-4': 'claude-opus-4-20250514',
+  'claude-sonnet-4': 'claude-sonnet-4-20250514',
+  'claude-3.7-sonnet': 'claude-3-7-sonnet-20250219',
+  // Google: CMS display IDs → Gemini SDK model names
+  'gemini-3-pro': 'gemini-3.0-pro',
+  'gemini-3-flash': 'gemini-3.0-flash',
+  'gemini-3-deep-think': 'gemini-3.0-deep-think',
+  'gemini-2.5-pro': 'gemini-2.5-pro-latest',
+  'gemini-2.5-flash': 'gemini-2.5-flash-preview-05-20',
+};
+
+export const getSdkModelId = (modelId: string): string =>
+  MODEL_ID_MAP[modelId] ?? modelId;
+
 const PROVIDER_PREFIXES: [string, string][] = [
   ['claude', 'anthropic'],
   ['gpt', 'openai'],
@@ -47,23 +66,25 @@ export const resolveModel = async (
     return undefined;
   }
 
+  const sdkModelId = getSdkModelId(modelId);
+
   try {
     switch (providerName) {
       case 'anthropic': {
         const { anthropic } = await import('@ai-sdk/anthropic');
-        return anthropic(modelId);
+        return anthropic(sdkModelId);
       }
       case 'openai': {
         const { openai } = await import('@ai-sdk/openai');
-        return openai(modelId);
+        return openai(sdkModelId);
       }
       case 'google': {
         const { google } = await import('@ai-sdk/google');
-        return google(modelId);
+        return google(sdkModelId);
       }
       case 'mistral': {
         const { mistral } = await import('@ai-sdk/mistral');
-        return mistral(modelId);
+        return mistral(sdkModelId);
       }
       default:
         return undefined;
