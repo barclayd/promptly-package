@@ -1,0 +1,93 @@
+---
+title: Quick Start
+description: Create a client, fetch a prompt, and use it with the Vercel AI SDK in under 5 minutes.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+This guide walks you through the basic workflow: setting your API key, creating a client, fetching a prompt, and using it with the Vercel AI SDK.
+
+<Steps>
+
+1. **Set your API key**
+
+   Add your Promptly API key to your environment. Create a `.env` file in your project root:
+
+   ```bash title=".env"
+   PROMPTLY_API_KEY=pk_live_...
+   ```
+
+   <Aside>
+     Get your API key from the [Promptly CMS dashboard](https://promptlycms.com). The SDK reads `PROMPTLY_API_KEY` from the environment automatically if no `apiKey` is passed to the client.
+   </Aside>
+
+2. **Create a client**
+
+   ```typescript title="src/index.ts"
+   import { createPromptlyClient } from '@promptlycms/prompts';
+
+   const promptly = createPromptlyClient();
+   ```
+
+   You can omit `apiKey` if `PROMPTLY_API_KEY` is set in your environment — the SDK picks it up automatically.
+
+3. **Fetch a prompt**
+
+   ```typescript title="src/index.ts"
+   const result = await promptly.getPrompt('your-prompt-id');
+
+   // Access prompt metadata
+   result.promptId;      // 'your-prompt-id'
+   result.promptName;    // 'My Prompt'
+   result.systemMessage; // 'You are a helpful assistant.'
+   result.temperature;   // 0.7
+   result.model;         // LanguageModel (auto-resolved)
+
+   // Interpolate template variables
+   const message = result.userMessage({
+     name: 'Alice',
+     task: 'code review',
+   });
+   ```
+
+4. **Use with the Vercel AI SDK**
+
+   The `aiParams()` method returns an object you can spread directly into `generateText()` or `streamText()`:
+
+   ```typescript title="src/index.ts"
+   import { generateText } from 'ai';
+
+   const params = await promptly.aiParams('your-prompt-id', {
+     variables: { name: 'Alice', task: 'code review' },
+   });
+
+   const { text } = await generateText({
+     ...params,
+     // model, system, prompt, temperature are all included
+   });
+   ```
+
+</Steps>
+
+## Complete example
+
+```typescript title="src/index.ts"
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const promptly = createPromptlyClient();
+
+const { text } = await generateText({
+  ...await promptly.aiParams('your-prompt-id', {
+    variables: { name: 'Alice', task: 'code review' },
+  }),
+});
+
+console.log(text);
+```
+
+## Next steps
+
+- [Generate types](/getting-started/type-generation/) for autocomplete and type safety
+- Learn about [fetching prompts](/guides/fetching-prompts/) in detail
+- Explore the [AI SDK integration](/guides/ai-sdk-integration/) guide

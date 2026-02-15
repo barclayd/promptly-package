@@ -1,0 +1,173 @@
+---
+title: Client API
+description: Full API reference for createPromptlyClient, getPrompt, getPrompts, and aiParams.
+---
+
+## `createPromptlyClient(config?)`
+
+Creates a new Promptly client instance.
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+
+const promptly = createPromptlyClient({
+  apiKey: process.env.PROMPTLY_API_KEY,
+});
+```
+
+### Config options
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `apiKey` | `string` | No | `process.env.PROMPTLY_API_KEY` | Your Promptly API key |
+| `baseUrl` | `string` | No | `https://api.promptlycms.com` | API base URL |
+| `model` | `(modelId: string) => LanguageModel` | No | Auto-detection | Custom model resolver — overrides built-in auto-detection |
+
+### Return type
+
+Returns a `PromptlyClient` with three methods: `getPrompt()`, `getPrompts()`, and `aiParams()`.
+
+### Throws
+
+- `PromptlyError` with code `UNAUTHORIZED` if no API key is provided and `PROMPTLY_API_KEY` is not set in the environment.
+
+---
+
+## `client.getPrompt(promptId, options?)`
+
+Fetches a single prompt by ID.
+
+```typescript
+const result = await promptly.getPrompt('my-prompt');
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `promptId` | `PromptId` | Yes | The prompt ID to fetch. Autocompletes known IDs if codegen types are present. |
+| `options.version` | `string` | No | Specific version to fetch (default: latest) |
+
+### Return type: `PromptResult<V>`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `promptId` | `string` | The prompt ID |
+| `promptName` | `string` | Human-readable prompt name |
+| `version` | `string` | The resolved version |
+| `systemMessage` | `string` | System message from the CMS |
+| `userMessage` | `PromptMessage<V>` | Callable function for template interpolation |
+| `temperature` | `number` | Temperature setting |
+| `model` | `LanguageModel` | Auto-resolved AI SDK model |
+| `config` | `PromptConfig` | Full config including schema fields |
+| `publishedVersions` | `PublishedVersion[]` | Available published versions (if present) |
+
+### `userMessage` usage
+
+The `userMessage` property is both callable and stringifiable:
+
+```typescript
+// Interpolate variables
+const text = result.userMessage({ name: 'Alice' });
+
+// Get raw template
+const template = String(result.userMessage);
+// => 'Hello ${name}!'
+```
+
+### Generic type parameters
+
+```typescript
+client.getPrompt<
+  T extends string,             // Prompt ID
+  V extends PromptVersion<T>    // Version (default: 'latest')
+>(promptId: T, options?: GetOptions<V>)
+  => Promise<PromptResult<VariablesFor<T, V>>>
+```
+
+When codegen types are present, `T` narrows to a known prompt ID and `VariablesFor<T, V>` resolves to the typed variable shape. For unknown IDs, it falls back to `Record<string, string>`.
+
+---
+
+## `client.getPrompts(entries)`
+
+Fetches multiple prompts in parallel.
+
+```typescript
+const [first, second] = await promptly.getPrompts([
+  { promptId: 'prompt-a' },
+  { promptId: 'prompt-b', version: '2.0.0' },
+]);
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `entries` | `readonly PromptRequest[]` | Yes | Array of prompt requests |
+
+Each `PromptRequest`:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `promptId` | `string` | Yes | The prompt ID |
+| `version` | `string` | No | Specific version (default: latest) |
+
+### Return type
+
+Returns `GetPromptsResults<T>` — a mapped tuple where each position is typed to the corresponding request's prompt variables.
+
+### Generic type parameters
+
+```typescript
+client.getPrompts<const T extends readonly PromptRequest[]>(entries: T)
+  => Promise<GetPromptsResults<T>>
+```
+
+The `const` type parameter preserves literal string types from the input array.
+
+---
+
+## `client.aiParams(promptId, options?)`
+
+Fetches a prompt and returns params ready to spread into AI SDK functions.
+
+```typescript
+import { generateText } from 'ai';
+
+const params = await promptly.aiParams('my-prompt', {
+  variables: { name: 'Alice' },
+});
+
+const { text } = await generateText({ ...params });
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `promptId` | `PromptId` | Yes | The prompt ID to fetch |
+| `options.version` | `string` | No | Specific version to fetch |
+| `options.variables` | `Record<string, string>` | No | Template variables to interpolate |
+
+### Return type: `AiParams`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `system` | `string` | System message |
+| `prompt` | `string` | User message (with variables interpolated if provided) |
+| `temperature` | `number` | Temperature setting |
+| `model` | `LanguageModel` | Auto-resolved AI SDK model |
+| `output` | `Output.object(...)` | Zod schema wrapped in Output.object (only if CMS schema is defined) |
+
+### Generic type parameters
+
+```typescript
+client.aiParams<
+  T extends string,
+  V extends PromptVersion<T> | 'latest'
+>(promptId: T, options?: { version?: V; variables?: VariablesFor<T, V> })
+  => Promise<AiParams>
+```
+
+When codegen types are present, `variables` is typed to the specific prompt's variable shape.

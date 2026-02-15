@@ -1,0 +1,134 @@
+---
+title: Fetching Prompts
+description: Fetch single and multiple prompts with getPrompt() and getPrompts().
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Single prompt
+
+Use `getPrompt()` to fetch a single prompt by ID:
+
+```typescript
+const result = await promptly.getPrompt('review-prompt');
+```
+
+### Accessing metadata
+
+The result includes all prompt metadata from the CMS:
+
+```typescript
+result.promptId;      // 'review-prompt'
+result.promptName;    // 'Review Prompt'
+result.systemMessage; // 'You are a helpful assistant...'
+result.temperature;   // 0.7
+result.model;         // LanguageModel (auto-resolved from CMS config)
+result.version;       // '2.0.0'
+```
+
+### Template variable interpolation
+
+The `userMessage` property is a callable function that interpolates template variables:
+
+```typescript
+const message = result.userMessage({
+  pickupLocation: 'London',
+  items: 'sofa',
+});
+// => 'Help with London moving sofa.'
+```
+
+If you've run [codegen](/getting-started/type-generation/), the variables are fully typed.
+
+### Raw template access
+
+To get the raw template string with `${variable}` placeholders intact, use `String()`:
+
+```typescript
+const template = String(result.userMessage);
+// => 'Help with ${pickupLocation} moving ${items}.'
+```
+
+### Version pinning
+
+By default, `getPrompt()` fetches the latest published version. To fetch a specific version:
+
+```typescript
+const result = await promptly.getPrompt('review-prompt', {
+  version: '2.0.0',
+});
+```
+
+<Aside type="tip">
+  Version pinning is useful for production deployments where you want to lock to a known-good prompt version while iterating on a new version in the CMS.
+</Aside>
+
+## Batch fetch
+
+Use `getPrompts()` to fetch multiple prompts in parallel:
+
+```typescript
+const [reviewPrompt, welcomePrompt] = await promptly.getPrompts([
+  { promptId: 'review-prompt' },
+  { promptId: 'welcome-email', version: '2.0.0' },
+]);
+```
+
+Each result in the returned tuple is typed to its own prompt's variables:
+
+```typescript
+reviewPrompt.userMessage({
+  pickupLocation: 'London',
+  items: 'sofa',
+});
+
+welcomePrompt.userMessage({
+  email: 'alice@example.com',
+  subject: 'Welcome',
+});
+```
+
+The array is typed as a tuple — the first element matches the first request, the second matches the second, and so on.
+
+## Real-world example
+
+Here's a pattern for using fetched prompts with the Vercel AI SDK, including cache control for Anthropic models:
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const promptly = createPromptlyClient();
+
+const result = await promptly.getPrompt('review-prompt', {
+  version: '2.0.0',
+});
+
+const { text } = await generateText({
+  model: result.model,
+  system: result.systemMessage,
+  temperature: result.temperature,
+  messages: [
+    {
+      role: 'user',
+      content: result.userMessage({
+        pickupLocation: 'London',
+        items: 'sofa',
+      }),
+      providerOptions: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+  ],
+});
+```
+
+<Aside>
+  When you need fine-grained control over the messages array (e.g. for provider options like cache control), use the individual properties from `getPrompt()` instead of `aiParams()`.
+</Aside>
+
+## Next steps
+
+- Use [aiParams()](/guides/ai-sdk-integration/) for the simplest AI SDK integration
+- Learn about [model resolution](/guides/model-resolution/) and custom resolvers
+- Handle [errors](/guides/error-handling/) from the API

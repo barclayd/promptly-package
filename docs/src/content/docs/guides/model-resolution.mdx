@@ -1,0 +1,127 @@
+---
+title: Model Resolution
+description: How the SDK automatically resolves AI models from your CMS configuration.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The SDK automatically resolves the model configured in your CMS prompt to the correct Vercel AI SDK provider. No manual model setup needed.
+
+## How it works
+
+When you call `getPrompt()` or `aiParams()`, the SDK:
+
+1. Reads the model name from the CMS prompt config (e.g. `claude-sonnet-4.5`)
+2. Detects the provider from the model name prefix
+3. Maps CMS display names to full API model IDs
+4. Dynamically imports the correct provider package
+5. Returns a ready-to-use `LanguageModel` instance
+
+## Provider prefix table
+
+| Prefix | Provider | Package |
+|--------|----------|---------|
+| `claude-*` | Anthropic | `@ai-sdk/anthropic` |
+| `gpt-*` | OpenAI | `@ai-sdk/openai` |
+| `o1-*`, `o3-*`, `o4-*` | OpenAI | `@ai-sdk/openai` |
+| `chatgpt-*` | OpenAI | `@ai-sdk/openai` |
+| `gemini-*` | Google | `@ai-sdk/google` |
+| `mistral-*` | Mistral | `@ai-sdk/mistral` |
+| `mixtral-*` | Mistral | `@ai-sdk/mistral` |
+| `codestral-*` | Mistral | `@ai-sdk/mistral` |
+
+## CMS display name mapping
+
+The CMS uses friendly display names that the SDK maps to full API model IDs:
+
+| CMS Display Name | API Model ID |
+|-------------------|-------------|
+| `claude-opus-4.6` | `claude-opus-4-6-20250917` |
+| `claude-sonnet-4.5` | `claude-sonnet-4-5-20250929` |
+| `claude-haiku-4.5` | `claude-haiku-4-5-20251001` |
+| `claude-opus-4` | `claude-opus-4-20250514` |
+| `claude-sonnet-4` | `claude-sonnet-4-20250514` |
+| `claude-3.7-sonnet` | `claude-3-7-sonnet-20250219` |
+| `gemini-3-pro` | `gemini-3.0-pro` |
+| `gemini-3-flash` | `gemini-3.0-flash` |
+| `gemini-2.5-pro` | `gemini-2.5-pro-latest` |
+| `gemini-2.5-flash` | `gemini-2.5-flash-preview-05-20` |
+
+Model IDs not in the mapping table are passed through as-is.
+
+## Dynamic provider imports
+
+Provider packages are dynamically imported at runtime. This means:
+
+- Only installed providers are loaded
+- Unused providers aren't included in your bundle
+- You only need to install the provider packages your prompts use
+
+```typescript
+// If your CMS prompts use Claude models, you only need:
+// bun add @ai-sdk/anthropic
+
+// The SDK dynamically imports it when resolving the model:
+// const { anthropic } = await import('@ai-sdk/anthropic');
+```
+
+## Custom model resolver
+
+If you need full control over model resolution, pass a `model` function to the client:
+
+```typescript
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { anthropic } from '@ai-sdk/anthropic';
+
+const promptly = createPromptlyClient({
+  apiKey: process.env.PROMPTLY_API_KEY,
+  model: (modelId) => anthropic('claude-sonnet-4-5-20250929'),
+});
+```
+
+The custom resolver receives the model ID string from the CMS and must return a `LanguageModel` instance. This overrides all auto-detection.
+
+### Use cases for custom resolvers
+
+- **Pin to a specific model** regardless of CMS config
+- **Use a custom or self-hosted model** not in the provider prefix table
+- **Route models** based on environment (e.g. cheaper model in development)
+- **Add custom configuration** to the provider (e.g. custom base URL)
+
+```typescript
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+
+const promptly = createPromptlyClient({
+  model: (modelId) => {
+    // Use a cheaper model in development
+    if (process.env.NODE_ENV === 'development') {
+      return openai('gpt-4o-mini');
+    }
+    // Custom routing logic
+    if (modelId.startsWith('claude')) {
+      return anthropic(modelId);
+    }
+    return openai(modelId);
+  },
+});
+```
+
+## Error handling for missing providers
+
+If a model's provider package isn't installed, the SDK throws a `PromptlyError` with a helpful message:
+
+```typescript
+// If @ai-sdk/anthropic is not installed and the prompt uses a Claude model:
+// PromptlyError: Failed to resolve model "claude-sonnet-4.5".
+//   Make sure "@ai-sdk/anthropic" is installed: npm install @ai-sdk/anthropic
+```
+
+<Aside type="tip">
+  The `promptly generate` CLI also warns about missing provider packages when it detects prompts that need them.
+</Aside>
+
+## Next steps
+
+- Learn about [structured output](/guides/structured-output/) with Zod schemas
+- See the full [client API reference](/reference/client-api/)
