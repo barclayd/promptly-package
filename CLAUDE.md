@@ -134,8 +134,8 @@ This is `@promptly/prompts` — a TypeScript SDK for the Promptly CMS API. It pr
 ### Dependencies
 
 - **Runtime:** citty, jiti
-- **Peer:** zod ^3.23, ai ^4.0, typescript ^5
-- **Dev:** @biomejs/biome, @types/bun, @typescript/native-preview, tsup
+- **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5
+- **Dev:** @biomejs/biome, @changesets/cli, @changesets/changelog-github, @types/bun, @typescript/native-preview, tsup
 
 ## Code style
 
@@ -160,3 +160,22 @@ Follow Kent C. Dodds' "Avoid Nesting When You're Testing":
 
 GitHub Actions CI runs on push/PR to `main` (`.github/workflows/ci.yml`):
 checkout → setup Bun (`oven-sh/setup-bun@v2`) → `bun install --frozen-lockfile` → types → lint → test → build
+
+## Releasing
+
+Uses [Changesets](https://github.com/changesets/changesets) for versioning and npm publishing (`.github/workflows/release.yml`).
+
+### Adding a changeset
+
+When making a user-facing change, run `bunx changeset` and follow the prompts to select a semver bump (patch/minor/major) and describe the change. This creates a markdown file in `.changeset/` that gets consumed at release time.
+
+### How releases work
+
+- **On PR:** A canary version (`x.y.z-canary.<sha>`) is published to npm under the `canary` tag. A sticky PR comment shows the install command.
+- **On merge to main:** The `changesets/action` either:
+  - Creates/updates a "Version Packages" PR that bumps versions and updates CHANGELOG
+  - Publishes to npm if the "Version Packages" PR was just merged
+
+### npm authentication
+
+Uses OIDC trusted publishing — no `NPM_TOKEN` secret needed. Requires a trusted publisher connection configured on npmjs.com for the `@promptly/prompts` package pointing to the `release.yml` workflow in `barclayd/promptly-package`.
