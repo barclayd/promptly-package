@@ -7,7 +7,7 @@ import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 ## `promptly generate`
 
-Fetches all prompts from the Promptly API and generates a TypeScript declaration file with typed template variables.
+Fetches all prompts from the Promptly API and generates a `promptly-env.d.ts` TypeScript declaration file. The CLI automatically places the file in your `src/types/` or `types/` directory if one exists, otherwise it falls back to the project root. Use `--output` to override.
 
 <Tabs>
   <TabItem label="bun">
@@ -37,7 +37,7 @@ Fetches all prompts from the Promptly API and generates a TypeScript declaration
 | Flag | Alias | Type | Default | Description |
 |------|-------|------|---------|-------------|
 | `--api-key` | | `string` | `process.env.PROMPTLY_API_KEY` | API key for authentication |
-| `--output` | `-o` | `string` | `./promptly-env.d.ts` | Output file path |
+| `--output` | `-o` | `string` | Auto-detected (see below) | Output file path |
 
 ## Authentication
 
@@ -55,6 +55,22 @@ npx promptly generate --api-key pk_live_...
 ```
 
 ## Output file
+
+### Default location
+
+The CLI automatically detects the best location for the generated file:
+
+1. **`src/types/promptly-env.d.ts`** — if a `src/types/` directory exists
+2. **`types/promptly-env.d.ts`** — if a `types/` directory exists
+3. **`./promptly-env.d.ts`** — fallback (project root)
+
+To override this, use the `--output` (`-o`) flag:
+
+```bash
+npx promptly generate --output ./custom/path/promptly-env.d.ts
+```
+
+### Generated file contents
 
 The generated file is a TypeScript declaration file that augments the `@promptlycms/prompts` module:
 
@@ -108,12 +124,6 @@ Prompts whose `userMessage` contains no `${variable}` patterns get `Record<strin
 'static-prompt': {
   [V in 'latest' | '1.0.0']: Record<string, never>;
 };
-```
-
-## Custom output path
-
-```bash
-npx promptly generate --output ./types/promptly-env.d.ts
 ```
 
 ## Missing provider warnings

@@ -31,35 +31,6 @@ const mockPromptResponse: PromptResponse = {
   },
 };
 
-const mockPromptWithSchema: PromptResponse = {
-  ...mockPromptResponse,
-  config: {
-    ...mockPromptResponse.config,
-    schema: [
-      {
-        id: '1',
-        name: 'category',
-        type: 'enum',
-        validations: [],
-        params: {
-          enumValues: ['spam', 'important'],
-          description: 'Email category',
-        },
-      },
-      {
-        id: '2',
-        name: 'confidence',
-        type: 'number',
-        validations: [
-          { id: 'v1', type: 'min', value: '0', message: 'Min 0' },
-          { id: 'v2', type: 'max', value: '1', message: 'Max 1' },
-        ],
-        params: { description: 'Confidence score' },
-      },
-    ],
-  },
-};
-
 const originalFetch = globalThis.fetch;
 const originalEnvKey = process.env.PROMPTLY_API_KEY;
 
@@ -261,40 +232,6 @@ test('getPrompt() throws PromptlyError on 429 with usage and upgradeUrl', async 
   }
 });
 
-test('aiParams() returns system, prompt, and temperature', async () => {
-  const { client } = setup();
-  const params = await client.aiParams('my-prompt');
-
-  expect(params.system).toBe('You are a helpful assistant.');
-  expect(params.prompt).toBe(mockPromptResponse.userMessage);
-  expect(params.temperature).toBe(0.7);
-  expect(params.output).toBeUndefined();
-});
-
-test('aiParams() replaces template variables', async () => {
-  const { client } = setup();
-  const params = await client.aiParams('my-prompt', {
-    variables: { name: 'Alice', task: 'coding' },
-  });
-
-  expect(params.prompt).toBe('Hello Alice, please help with coding.');
-});
-
-test('aiParams() includes output when schema exists', async () => {
-  const { client } = setup(mockPromptWithSchema);
-  const params = await client.aiParams('my-prompt');
-
-  expect(params.output).toBeDefined();
-});
-
-test('aiParams() passes version option through', async () => {
-  const { client, getMockCalls } = setup();
-  await client.aiParams('my-prompt', { version: '1.5.0' });
-
-  const [url] = getMockCalls()[0] as [string];
-  expect(url).toContain('version=1.5.0');
-});
-
 test('getPrompt() returns callable userMessage that interpolates variables', async () => {
   const { client } = setup();
   const result = await client.getPrompt('my-prompt');
@@ -493,25 +430,6 @@ test('getPrompt() uses model callback from config when provided', async () => {
 
   expect(result.model).toBeDefined();
   expect((result.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
-});
-
-test('aiParams() resolves model automatically', async () => {
-  globalThis.fetch = mock(() =>
-    Promise.resolve(
-      new Response(JSON.stringify(mockPromptResponse), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    ),
-  ) as unknown as typeof fetch;
-
-  const client = createPromptlyClient({ apiKey: 'test-key' });
-  const params = await client.aiParams('my-prompt');
-
-  expect(params.model).toBeDefined();
-  expect((params.model as LanguageModelV3).modelId).toBe(
-    'claude-haiku-4-5-20251001',
-  );
 });
 
 // --- getSdkModelId() tests ---

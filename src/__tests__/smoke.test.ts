@@ -79,15 +79,6 @@ test.skipIf(!hasEnv)(
   },
 );
 
-test.skipIf(!hasEnv)('smoke: aiParams() returns AI SDK params', async () => {
-  const { client, promptId } = setupWithEnv();
-  const params = await client.aiParams(promptId);
-
-  expect(typeof params.system).toBe('string');
-  expect(typeof params.prompt).toBe('string');
-  expect(typeof params.temperature).toBe('number');
-});
-
 test.skipIf(!hasEnv)(
   'smoke: getPrompt() resolves language model for anthropic prompt',
   async () => {

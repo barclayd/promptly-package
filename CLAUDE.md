@@ -113,7 +113,7 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 ## Project
 
 This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides:
-- A **runtime client** for fetching prompts (`get`, `getPrompts`, `aiParams`)
+- A **runtime client** for fetching prompts (`getPrompt`, `getPrompts`)
 - A **codegen CLI** that generates `promptly-env.d.ts` with typed template variables via declaration merging
 
 ### Key scripts
@@ -126,7 +126,7 @@ This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It
 
 ### Project structure
 
-- `src/client.ts` — runtime client (`createPromptClient`) with `get()`, `getPrompts()`, and `aiParams()` methods
+- `src/client.ts` — runtime client (`createPromptlyClient`) with `getPrompt()` and `getPrompts()` methods
 - `src/schema/builder.ts` — builds Zod schemas from `SchemaField[]` at runtime
 - `src/schema/codegen.ts` — generates Zod source code strings from `SchemaField[]`
 - `src/errors.ts` — `PromptlyError` class with `code`, `status`, `usage`, `upgradeUrl`

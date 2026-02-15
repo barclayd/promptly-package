@@ -15,7 +15,10 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Card, CardGrid, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+<h2 class="hero-headline">Your prompts don't belong in <span class="gradient"><span class="gradient-text">your codebase</span><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><path d="M0,8 Q50,0 100,8 T200,8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg></span></h2>
+<p class="hero-subtitle">Manage, test, and deploy AI prompts without touching code. Empower your whole team to iterate on prompts while developers focus on building.</p>
 
 ## Install
 
@@ -45,14 +48,14 @@ import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
 ## Features
 
 <CardGrid>
-  <Card title="Runtime Client" icon="rocket">
-    Fetch prompts with `getPrompt()` and `getPrompts()`. Typed template variables with autocomplete when you run codegen.
+  <Card title="Zero Hardcoded Prompts" icon="rocket">
+    Fetch prompts at runtime with `getPrompt()` and `getPrompts()`. Update wording, model, and temperature from the [CMS](https://promptlycms.com) — no code changes, no redeploys.
   </Card>
   <Card title="AI SDK Integration" icon="puzzle">
-    `aiParams()` returns spread-ready params for [Vercel AI SDK](https://sdk.vercel.ai) functions like `generateText()` and `streamText()`.
+    `getPrompt()` returns model, temperature, and messages ready for [Vercel AI SDK](https://ai-sdk.dev/) functions like `generateText()` and `streamText()`.
   </Card>
   <Card title="Multi-Model Auto-Detection" icon="setting">
-    Automatically resolves Anthropic, OpenAI, Google, and Mistral models from your CMS config. No manual provider setup.
+    Supports [all AI SDK providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support). Automatically resolves models from your CMS config — no manual provider setup.
   </Card>
   <Card title="Codegen for Type Safety" icon="seti:typescript">
     Run `npx promptly generate` to generate typed template variables via declaration merging. Full autocomplete in your editor.
@@ -67,7 +70,7 @@ import { generateText } from 'ai';
 
 const { getPrompt } = createPromptlyClient();
 
-// promptly was created to be as compatible with Vercel's ai sdk package as possible
+// fetch your prompt at runtime — nothing hardcoded in your codebase
 const { userMessage, systemMessage, temperature, model } = await getPrompt(
   'upsellMessage',
 );
@@ -91,6 +94,9 @@ const { text } = await generateText({
   temperature,
 });
 
-// your AI agent output as usual with 0 prompts hardcoded in your codebase
 console.log(text);
 ```
+
+<Aside>
+  Manage your prompts, models, and versions from the [Promptly CMS dashboard](https://promptlycms.com). Learn more about what Promptly CMS can do at [promptlycms.com](https://promptlycms.com).
+</Aside>

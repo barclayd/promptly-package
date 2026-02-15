@@ -32,7 +32,7 @@ The `promptly generate` CLI command fetches all your prompts from the API and ge
   </TabItem>
 </Tabs>
 
-This creates a `promptly-env.d.ts` file in your project root.
+This generates a `promptly-env.d.ts` declaration file. The CLI automatically places it in `src/types/` or `types/` if either directory exists in your project, otherwise it falls back to the project root.
 
 ## Generated output
 
@@ -93,10 +93,20 @@ result.userMessage({
 });
 ```
 
-## Custom output path
+## Output location
+
+By default, the CLI auto-detects the best location for the generated file:
+
+| Priority | Directory | Output path |
+|----------|-----------|-------------|
+| 1 | `src/types/` exists | `src/types/promptly-env.d.ts` |
+| 2 | `types/` exists | `types/promptly-env.d.ts` |
+| 3 | Fallback | `./promptly-env.d.ts` |
+
+To override, use the `--output` (`-o`) flag:
 
 ```bash
-npx promptly generate --output ./types/promptly-env.d.ts
+npx promptly generate --output ./custom/path/promptly-env.d.ts
 ```
 
 ## Pass API key directly

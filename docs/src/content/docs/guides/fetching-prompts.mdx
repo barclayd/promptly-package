@@ -124,11 +124,12 @@ const { text } = await generateText({
 ```
 
 <Aside>
-  When you need fine-grained control over the messages array (e.g. for provider options like cache control), use the individual properties from `getPrompt()` instead of `aiParams()`.
+  When you need fine-grained control over the messages array (e.g. for provider options like cache control), destructure `getPrompt()` and build the messages array manually.
 </Aside>
 
 ## Next steps
 
-- Use [aiParams()](/guides/ai-sdk-integration/) for the simplest AI SDK integration
+- Explore the [AI SDK integration](/guides/ai-sdk-integration/) guide
 - Learn about [model resolution](/guides/model-resolution/) and custom resolvers
 - Handle [errors](/guides/error-handling/) from the API
+- Create and version your prompts in the [Promptly CMS](https://promptlycms.com)

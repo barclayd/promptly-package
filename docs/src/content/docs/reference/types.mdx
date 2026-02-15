@@ -19,11 +19,6 @@ type PromptlyClient = {
   getPrompts: <const T extends readonly PromptRequest[]>(
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
-
-  aiParams: <T extends string, V extends PromptVersion<T> | 'latest' = 'latest'>(
-    promptId: T,
-    options?: { version?: V; variables?: VariablesFor<T, V> },
-  ) => Promise<AiParams>;
 };
 ```
 
@@ -126,31 +121,6 @@ Options for `getPrompt()`.
 ```typescript
 type GetOptions<V extends string = string> = {
   version?: V;
-};
-```
-
-### `AiParamsOptions`
-
-Options for `aiParams()`.
-
-```typescript
-type AiParamsOptions = {
-  version?: string;
-  variables?: Record<string, string>;
-};
-```
-
-### `AiParams`
-
-The return type of `aiParams()`.
-
-```typescript
-type AiParams = {
-  system: string;
-  prompt: string;
-  temperature: number;
-  model: import('ai').LanguageModel;
-  output?: ReturnType<typeof import('ai').Output.object>;
 };
 ```
 

@@ -1,6 +1,6 @@
 ---
 title: Client API
-description: Full API reference for createPromptlyClient, getPrompt, getPrompts, and aiParams.
+description: Full API reference for createPromptlyClient, getPrompt, and getPrompts.
 ---
 
 ## `createPromptlyClient(config?)`
@@ -25,7 +25,7 @@ const promptly = createPromptlyClient({
 
 ### Return type
 
-Returns a `PromptlyClient` with three methods: `getPrompt()`, `getPrompts()`, and `aiParams()`.
+Returns a `PromptlyClient` with two methods: `getPrompt()` and `getPrompts()`.
 
 ### Throws
 
@@ -125,49 +125,3 @@ client.getPrompts<const T extends readonly PromptRequest[]>(entries: T)
 ```
 
 The `const` type parameter preserves literal string types from the input array.
-
----
-
-## `client.aiParams(promptId, options?)`
-
-Fetches a prompt and returns params ready to spread into AI SDK functions.
-
-```typescript
-import { generateText } from 'ai';
-
-const params = await promptly.aiParams('my-prompt', {
-  variables: { name: 'Alice' },
-});
-
-const { text } = await generateText({ ...params });
-```
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `promptId` | `PromptId` | Yes | The prompt ID to fetch |
-| `options.version` | `string` | No | Specific version to fetch |
-| `options.variables` | `Record<string, string>` | No | Template variables to interpolate |
-
-### Return type: `AiParams`
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `system` | `string` | System message |
-| `prompt` | `string` | User message (with variables interpolated if provided) |
-| `temperature` | `number` | Temperature setting |
-| `model` | `LanguageModel` | Auto-resolved AI SDK model |
-| `output` | `Output.object(...)` | Zod schema wrapped in Output.object (only if CMS schema is defined) |
-
-### Generic type parameters
-
-```typescript
-client.aiParams<
-  T extends string,
-  V extends PromptVersion<T> | 'latest'
->(promptId: T, options?: { version?: V; variables?: VariablesFor<T, V> })
-  => Promise<AiParams>
-```
-
-When codegen types are present, `variables` is typed to the specific prompt's variable shape.

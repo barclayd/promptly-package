@@ -1,11 +1,11 @@
 ---
 title: AI SDK Integration
-description: Use aiParams() to spread prompt configuration directly into Vercel AI SDK functions.
+description: Use getPrompt() to integrate Promptly CMS prompts with Vercel AI SDK functions.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-The `aiParams()` method is designed as the natural companion for developers using the [Vercel AI SDK](https://sdk.vercel.ai). It returns an object you can spread directly into `generateText()`, `streamText()`, and other AI SDK functions.
+The `getPrompt()` method returns everything you need to integrate with the [Vercel AI SDK](https://ai-sdk.dev/). Destructure the result and pass properties directly to `generateText()`, `streamText()`, and other AI SDK functions — no prompts hardcoded in your application code.
 
 ## Basic usage
 
@@ -13,51 +13,55 @@ The `aiParams()` method is designed as the natural companion for developers usin
 import { createPromptlyClient } from '@promptlycms/prompts';
 import { generateText } from 'ai';
 
-const promptly = createPromptlyClient();
+const { getPrompt } = createPromptlyClient();
 
-const params = await promptly.aiParams('my-prompt', {
-  variables: { name: 'Alice', task: 'code review' },
-});
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'my-prompt',
+);
 
 const { text } = await generateText({
-  ...params,
+  model,
+  system: systemMessage,
+  prompt: userMessage({ name: 'Alice', task: 'code review' }),
+  temperature,
 });
 ```
 
-## What `aiParams()` returns
-
-The returned object includes everything the AI SDK needs:
+## What `getPrompt()` returns
 
 ```typescript
-const params = await promptly.aiParams('my-prompt', {
-  variables: { name: 'Alice' },
-});
+const result = await promptly.getPrompt('my-prompt');
 
-// params contains:
+// result contains:
 // {
-//   system: 'You are a helpful assistant...',
-//   prompt: 'Hello Alice, how can I help?',
+//   systemMessage: 'You are a helpful assistant...',
+//   userMessage: PromptMessage,   // callable template function
 //   temperature: 0.7,
-//   model: LanguageModel,        // auto-resolved from CMS config
-//   output?: Output.object(...)  // if CMS schema is defined
+//   model: LanguageModel,         // auto-resolved from CMS config
+//   promptId: 'my-prompt',
+//   promptName: 'My Prompt',
+//   version: '1.0.0',
+//   config: PromptConfig,
 // }
 ```
 
-- **`system`** — the system message from the CMS
-- **`prompt`** — the user message with variables interpolated
+- **`systemMessage`** — the system message from the CMS
+- **`userMessage`** — callable function that interpolates template variables; call `String(userMessage)` for the raw template
 - **`temperature`** — the temperature setting from the CMS
 - **`model`** — automatically resolved from the model configured in the CMS (see [Model Resolution](/guides/model-resolution/))
-- **`output`** — automatically populated with a Zod schema wrapped in `Output.object()` if the prompt has a structured output schema defined in the CMS (see [Structured Output](/guides/structured-output/))
 
 ## With `generateText()`
 
 ```typescript
 import { generateText } from 'ai';
 
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('summarize');
+
 const { text } = await generateText({
-  ...await promptly.aiParams('summarize', {
-    variables: { content: articleText },
-  }),
+  model,
+  system: systemMessage,
+  prompt: userMessage({ content: articleText }),
+  temperature,
 });
 ```
 
@@ -66,10 +70,13 @@ const { text } = await generateText({
 ```typescript
 import { streamText } from 'ai';
 
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('chat-assistant');
+
 const stream = streamText({
-  ...await promptly.aiParams('chat-assistant', {
-    variables: { context: conversationHistory },
-  }),
+  model,
+  system: systemMessage,
+  prompt: userMessage({ context: conversationHistory }),
+  temperature,
 });
 
 for await (const chunk of stream.textStream) {
@@ -77,50 +84,44 @@ for await (const chunk of stream.textStream) {
 }
 ```
 
+## With messages array
+
+For full control over the messages array (e.g. for provider-specific options like cache control):
+
+```typescript
+import { generateText } from 'ai';
+
+const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('review-prompt');
+
+const { text } = await generateText({
+  model,
+  system: systemMessage,
+  temperature,
+  messages: [
+    {
+      role: 'user',
+      content: userMessage({ pickupLocation: 'London', items: 'sofa' }),
+      providerOptions: {
+        anthropic: { cacheControl: { type: 'ephemeral' } },
+      },
+    },
+  ],
+});
+```
+
 ## Version pinning
 
 Fetch a specific prompt version:
 
 ```typescript
-const params = await promptly.aiParams('my-prompt', {
+const { userMessage, model, temperature, systemMessage } = await promptly.getPrompt('my-prompt', {
   version: '2.0.0',
-  variables: { name: 'Alice' },
 });
 ```
-
-## Structured output
-
-If your prompt has a structured output schema defined in the CMS, `aiParams()` automatically includes the `output` property:
-
-```typescript
-const params = await promptly.aiParams('extract-data');
-
-// params.output is automatically populated with Output.object({ schema })
-const { object } = await generateObject({
-  ...params,
-});
-
-// object is typed according to your CMS schema
-```
-
-See the [Structured Output](/guides/structured-output/) guide for details.
-
-## When to use `aiParams()` vs `getPrompt()`
-
-| Use case | Method |
-|----------|--------|
-| Simple AI SDK integration | `aiParams()` |
-| Need fine-grained message control | `getPrompt()` |
-| Provider-specific options (e.g. cache control) | `getPrompt()` |
-| Custom messages array | `getPrompt()` |
-| Spread-and-go simplicity | `aiParams()` |
-
-<Aside type="tip">
-  Use `aiParams()` when you want the simplest path from CMS to AI generation. Use `getPrompt()` when you need more control over the messages array or provider-specific options.
-</Aside>
 
 ## Next steps
 
 - Learn how [model resolution](/guides/model-resolution/) works
 - See [structured output](/guides/structured-output/) for Zod schemas from the CMS
 - View the full [client API reference](/reference/client-api/)
+- Manage your prompts and models from the [Promptly CMS dashboard](https://promptlycms.com)

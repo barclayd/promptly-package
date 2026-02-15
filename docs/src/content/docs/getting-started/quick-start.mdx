@@ -5,7 +5,7 @@ description: Create a client, fetch a prompt, and use it with the Vercel AI SDK 
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-This guide walks you through the basic workflow: setting your API key, creating a client, fetching a prompt, and using it with the Vercel AI SDK.
+This guide walks you through the basic workflow: setting your API key, creating a client, fetching a prompt, and using it with the Vercel AI SDK. By the end, your prompts will be managed in the [Promptly CMS](https://promptlycms.com) — not hardcoded in your codebase.
 
 <Steps>
 
@@ -18,7 +18,7 @@ This guide walks you through the basic workflow: setting your API key, creating 
    ```
 
    <Aside>
-     Get your API key from the [Promptly CMS dashboard](https://promptlycms.com). The SDK reads `PROMPTLY_API_KEY` from the environment automatically if no `apiKey` is passed to the client.
+     Get your API key from the [Promptly CMS dashboard](https://app.promptlycms.com/settings?apiKeys). The SDK reads `PROMPTLY_API_KEY` from the environment automatically if no `apiKey` is passed to the client.
    </Aside>
 
 2. **Create a client**
@@ -50,20 +50,20 @@ This guide walks you through the basic workflow: setting your API key, creating 
    });
    ```
 
-4. **Use with the Vercel AI SDK**
+4. **Use with the [Vercel AI SDK](https://ai-sdk.dev/)**
 
-   The `aiParams()` method returns an object you can spread directly into `generateText()` or `streamText()`:
+   Destructure `getPrompt()` and pass the properties directly to `generateText()` or `streamText()`:
 
    ```typescript title="src/index.ts"
    import { generateText } from 'ai';
 
-   const params = await promptly.aiParams('your-prompt-id', {
-     variables: { name: 'Alice', task: 'code review' },
-   });
+   const { userMessage, systemMessage, temperature, model } = await promptly.getPrompt('your-prompt-id');
 
    const { text } = await generateText({
-     ...params,
-     // model, system, prompt, temperature are all included
+     model,
+     system: systemMessage,
+     prompt: userMessage({ name: 'Alice', task: 'code review' }),
+     temperature,
    });
    ```
 
@@ -75,12 +75,17 @@ This guide walks you through the basic workflow: setting your API key, creating 
 import { createPromptlyClient } from '@promptlycms/prompts';
 import { generateText } from 'ai';
 
-const promptly = createPromptlyClient();
+const { getPrompt } = createPromptlyClient();
+
+const { userMessage, systemMessage, temperature, model } = await getPrompt(
+  'your-prompt-id',
+);
 
 const { text } = await generateText({
-  ...await promptly.aiParams('your-prompt-id', {
-    variables: { name: 'Alice', task: 'code review' },
-  }),
+  model,
+  system: systemMessage,
+  prompt: userMessage({ name: 'Alice', task: 'code review' }),
+  temperature,
 });
 
 console.log(text);
@@ -91,3 +96,4 @@ console.log(text);
 - [Generate types](/getting-started/type-generation/) for autocomplete and type safety
 - Learn about [fetching prompts](/guides/fetching-prompts/) in detail
 - Explore the [AI SDK integration](/guides/ai-sdk-integration/) guide
+- Manage your prompts, models, and versions from the [Promptly CMS dashboard](https://promptlycms.com)

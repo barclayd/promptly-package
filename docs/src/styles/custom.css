@@ -52,7 +52,58 @@
   --sl-color-backdrop-overlay: hsla(0, 0%, 5%, 0.66);
 }
 
-/* Light mode */
+/* Hero headline — matches promptlycms.com h1 */
+.hero-headline {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  font-size: clamp(1.875rem, 5vw, 3.75rem);
+  margin-block: 0;
+  text-wrap: balance;
+  text-align: center;
+}
+
+@media (min-width: 72rem) {
+  .hero-headline {
+    font-size: 4.5rem;
+    line-height: 1.1;
+  }
+}
+
+.hero-headline .gradient {
+  position: relative;
+  display: inline;
+  white-space: nowrap;
+}
+
+.hero-headline .gradient-text {
+  background: linear-gradient(to right, #6366f1, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Override Starlight's .sl-markdown-content svg { display: block } */
+.hero-headline .gradient svg {
+  display: inline;
+  position: absolute;
+  bottom: -0.5rem;
+  left: 0;
+  width: 100%;
+  height: 0.75rem;
+  color: rgb(99 102 241 / 0.3);
+}
+
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--sl-color-gray-2);
+  max-width: 40rem;
+  text-align: center;
+  margin-inline: auto;
+  margin-block-start: 0.75rem;
+}
+
 :root[data-theme='light'] {
   /*
    * Accent — app's color-mix(in oklab, var(--primary) 90%, transparent)

@@ -5,35 +5,16 @@ description: Use Zod schemas from your CMS to get validated, typed AI responses.
 
 import { Aside } from '@astrojs/starlight/components';
 
-When you define an output schema in the Promptly CMS, the SDK can automatically build Zod schemas at runtime and include them in AI SDK params.
+When you define an output schema in the Promptly CMS, the SDK can automatically build [Zod](https://zod.dev/) schemas at runtime for use with the Vercel AI SDK.
 
 ## How it works
 
 1. Define a structured output schema in the CMS using the schema builder
 2. The schema fields are included in the prompt's API response
-3. The SDK builds a Zod schema from these fields at runtime
-4. When using `aiParams()`, the schema is automatically wrapped in `Output.object()` and included in the returned params
+3. Use `buildZodSchema()` to build a Zod schema from these fields at runtime
+4. Pass it to the AI SDK's `Output.object()` for validated, typed responses
 
-## Automatic with `aiParams()`
-
-If your prompt has a schema defined in the CMS, `aiParams()` includes it automatically:
-
-```typescript
-import { generateText } from 'ai';
-
-const params = await promptly.aiParams('extract-entities');
-// params.output is automatically populated
-
-const { object } = await generateText({
-  ...params,
-});
-
-// object matches your CMS-defined schema
-```
-
-No additional configuration needed.
-
-## Manual schema building
+## Schema building
 
 For more control, use the `buildZodSchema` function from the `/schema` subpath export:
 
