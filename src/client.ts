@@ -26,13 +26,6 @@ const PROVIDER_PREFIXES: [string, string][] = [
   ['codestral', 'mistral'],
 ];
 
-const PROVIDER_PACKAGES: Record<string, string> = {
-  anthropic: '@ai-sdk/anthropic',
-  openai: '@ai-sdk/openai',
-  google: '@ai-sdk/google',
-  mistral: '@ai-sdk/mistral',
-};
-
 export const detectProviderName = (modelId: string): string | undefined => {
   const lower = modelId.toLowerCase();
   for (const [prefix, provider] of PROVIDER_PREFIXES) {
@@ -43,6 +36,9 @@ export const detectProviderName = (modelId: string): string | undefined => {
   return undefined;
 };
 
+// Uses string-literal imports so bundlers (esbuild, webpack) can
+// statically resolve each provider package at build time.
+// `import(variable)` is invisible to bundlers and fails at runtime.
 export const resolveModel = async (
   modelId: string,
 ): Promise<import('ai').LanguageModel | undefined> => {
@@ -51,14 +47,27 @@ export const resolveModel = async (
     return undefined;
   }
 
-  const pkg = PROVIDER_PACKAGES[providerName];
-  if (!pkg) {
-    return undefined;
-  }
-
   try {
-    const mod = await import(pkg);
-    return mod[providerName](modelId);
+    switch (providerName) {
+      case 'anthropic': {
+        const { anthropic } = await import('@ai-sdk/anthropic');
+        return anthropic(modelId);
+      }
+      case 'openai': {
+        const { openai } = await import('@ai-sdk/openai');
+        return openai(modelId);
+      }
+      case 'google': {
+        const { google } = await import('@ai-sdk/google');
+        return google(modelId);
+      }
+      case 'mistral': {
+        const { mistral } = await import('@ai-sdk/mistral');
+        return mistral(modelId);
+      }
+      default:
+        return undefined;
+    }
   } catch {
     return undefined;
   }

@@ -1,4 +1,5 @@
 import { afterEach, expect, mock, test } from 'bun:test';
+import type { LanguageModelV3 } from '@ai-sdk/provider';
 import {
   createPromptlyClient,
   detectProviderName,
@@ -452,36 +453,70 @@ test('resolveModel() returns undefined for unknown prefix', async () => {
   expect(await resolveModel('llama-3-70b')).toBeUndefined();
 });
 
-test('resolveModel() returns undefined when provider package is not installed', async () => {
-  expect(await resolveModel('claude-haiku-4-5')).toBeUndefined();
+test('resolveModel() resolves anthropic model when package is installed', async () => {
+  const model = await resolveModel('claude-haiku-4-5');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('claude-haiku-4-5');
 });
 
-// --- model callback tests ---
+test('resolveModel() resolves openai model when package is installed', async () => {
+  const model = await resolveModel('gpt-4o');
+  expect(model).toBeDefined();
+  expect((model as LanguageModelV3).modelId).toBe('gpt-4o');
+});
 
-test('getPrompt() uses model callback from config', async () => {
+// --- model resolution tests ---
+
+test('getPrompt() resolves model automatically', async () => {
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.model).toBeDefined();
+  expect((result.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
+});
+
+test('getPrompt() uses model callback from config when provided', async () => {
   const { client } = setup();
   const result = await client.getPrompt('my-prompt');
 
   expect(result.model).toBeDefined();
-  expect((result.model as unknown as { modelId: string }).modelId).toBe(
-    'claude-haiku-4.5',
-  );
+  expect((result.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
 });
 
-test('aiParams() uses model callback from config', async () => {
-  const { client } = setup();
-  const params = await client.aiParams('my-prompt');
-
-  expect(params.model).toBeDefined();
-  expect((params.model as unknown as { modelId: string }).modelId).toBe(
-    'claude-haiku-4.5',
-  );
-});
-
-test('getPrompt() returns undefined model when no callback and provider not installed', async () => {
+test('aiParams() resolves model automatically', async () => {
   globalThis.fetch = mock(() =>
     Promise.resolve(
       new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const params = await client.aiParams('my-prompt');
+
+  expect(params.model).toBeDefined();
+  expect((params.model as LanguageModelV3).modelId).toBe('claude-haiku-4.5');
+});
+
+test('getPrompt() returns undefined model for unknown provider', async () => {
+  const unknownResponse: PromptResponse = {
+    ...mockPromptResponse,
+    config: { ...mockPromptResponse.config, model: 'llama-3-70b' },
+  };
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(unknownResponse), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -492,21 +527,4 @@ test('getPrompt() returns undefined model when no callback and provider not inst
   const result = await client.getPrompt('my-prompt');
 
   expect(result.model).toBeUndefined();
-  expect(result.config.model).toBe('claude-haiku-4.5');
-});
-
-test('aiParams() returns undefined model when no callback and provider not installed', async () => {
-  globalThis.fetch = mock(() =>
-    Promise.resolve(
-      new Response(JSON.stringify(mockPromptResponse), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    ),
-  ) as unknown as typeof fetch;
-
-  const client = createPromptlyClient({ apiKey: 'test-key' });
-  const params = await client.aiParams('my-prompt');
-
-  expect(params.model).toBeUndefined();
 });
