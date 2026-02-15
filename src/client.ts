@@ -82,6 +82,17 @@ const createPromptMessage = (template: string): PromptMessage => {
   return fn as PromptMessage;
 };
 
+const createModelResolver = (
+  config?: PromptlyClientConfig,
+): ((modelId: string) => Promise<import('ai').LanguageModel | undefined>) => {
+  if (config?.model) {
+    const userResolver = config.model;
+    return async (modelId: string) => userResolver(modelId);
+  }
+
+  return (modelId: string) => resolveModel(modelId);
+};
+
 export const createPromptlyClient = (
   config?: PromptlyClientConfig,
 ): PromptlyClient => {
@@ -94,6 +105,7 @@ export const createPromptlyClient = (
     );
   }
   const baseUrl = config?.baseUrl ?? DEFAULT_BASE_URL;
+  const modelResolver = createModelResolver(config);
 
   const fetchPrompt = async (
     promptId: string,
@@ -122,7 +134,7 @@ export const createPromptlyClient = (
     options?: GetOptions<V>,
   ) => {
     const response = await fetchPrompt(promptId, options);
-    const model = await resolveModel(response.config.model);
+    const model = await modelResolver(response.config.model);
     return {
       ...response,
       userMessage: createPromptMessage(response.userMessage),
@@ -149,7 +161,7 @@ export const createPromptlyClient = (
       ? interpolate(prompt.userMessage, options.variables)
       : prompt.userMessage;
 
-    const model = await resolveModel(prompt.config.model);
+    const model = await modelResolver(prompt.config.model);
 
     const result = {
       system: prompt.systemMessage,

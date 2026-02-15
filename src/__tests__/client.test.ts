@@ -9,6 +9,10 @@ import type { PromptResponse } from '../types.ts';
 
 type MockFetch = ReturnType<typeof mock<typeof fetch>>;
 
+const stubModel = ((id: string) => ({ modelId: id })) as (
+  id: string,
+) => import('ai').LanguageModel;
+
 const mockPromptResponse: PromptResponse = {
   promptId: 'test-id-123',
   promptName: 'Test Prompt',
@@ -68,7 +72,10 @@ const setup = (response?: PromptResponse) => {
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({
+    apiKey: 'test-key',
+    model: stubModel,
+  });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -102,7 +109,7 @@ test('createPromptlyClient() reads API key from PROMPTLY_API_KEY env var', async
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient();
+  const client = createPromptlyClient({ model: stubModel });
   await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
@@ -137,7 +144,10 @@ test('createPromptlyClient() prefers explicit apiKey over env var', async () => 
     ),
   ) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'explicit-key' });
+  const client = createPromptlyClient({
+    apiKey: 'explicit-key',
+    model: stubModel,
+  });
   await client.getPrompt('my-prompt');
 
   const [, init] = (globalThis.fetch as unknown as MockFetch).mock.calls[0] as [
@@ -180,6 +190,7 @@ test('getPrompt() uses custom base URL', async () => {
   const client = createPromptlyClient({
     apiKey: 'test-key',
     baseUrl: 'https://custom.api.com',
+    model: stubModel,
   });
   await client.getPrompt('my-prompt');
 
@@ -338,7 +349,10 @@ const setupMulti = (responses: PromptResponse[]) => {
     );
   }) as unknown as typeof fetch;
 
-  const client = createPromptlyClient({ apiKey: 'test-key' });
+  const client = createPromptlyClient({
+    apiKey: 'test-key',
+    model: stubModel,
+  });
   const getMockCalls = (): unknown[][] =>
     (globalThis.fetch as unknown as MockFetch).mock.calls;
 
@@ -442,18 +456,56 @@ test('resolveModel() returns undefined when provider package is not installed', 
   expect(await resolveModel('claude-haiku-4-5')).toBeUndefined();
 });
 
-// --- model field on results ---
+// --- model callback tests ---
 
-test('getPrompt() includes model field (undefined when provider not installed)', async () => {
+test('getPrompt() uses model callback from config', async () => {
   const { client } = setup();
+  const result = await client.getPrompt('my-prompt');
+
+  expect(result.model).toBeDefined();
+  expect((result.model as unknown as { modelId: string }).modelId).toBe(
+    'claude-haiku-4.5',
+  );
+});
+
+test('aiParams() uses model callback from config', async () => {
+  const { client } = setup();
+  const params = await client.aiParams('my-prompt');
+
+  expect(params.model).toBeDefined();
+  expect((params.model as unknown as { modelId: string }).modelId).toBe(
+    'claude-haiku-4.5',
+  );
+});
+
+test('getPrompt() returns undefined model when no callback and provider not installed', async () => {
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const result = await client.getPrompt('my-prompt');
 
   expect(result.model).toBeUndefined();
   expect(result.config.model).toBe('claude-haiku-4.5');
 });
 
-test('aiParams() includes model field (undefined when provider not installed)', async () => {
-  const { client } = setup();
+test('aiParams() returns undefined model when no callback and provider not installed', async () => {
+  globalThis.fetch = mock(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(mockPromptResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ),
+  ) as unknown as typeof fetch;
+
+  const client = createPromptlyClient({ apiKey: 'test-key' });
   const params = await client.aiParams('my-prompt');
 
   expect(params.model).toBeUndefined();

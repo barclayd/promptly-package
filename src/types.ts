@@ -113,7 +113,7 @@ export type PromptResult<
 > = Omit<PromptResponse, 'userMessage'> & {
   userMessage: PromptMessage<V>;
   temperature: number;
-  model: import('ai').LanguageModel;
+  model: import('ai').LanguageModel | undefined;
 };
 
 // --- Batch types ---
@@ -155,6 +155,7 @@ export type ErrorResponse = {
 export type PromptlyClientConfig = {
   apiKey?: string;
   baseUrl?: string;
+  model?: (modelId: string) => import('ai').LanguageModel;
 };
 
 export type GetOptions<V extends string = string> = {
@@ -170,7 +171,7 @@ export type AiParams = {
   system: string;
   prompt: string;
   temperature: number;
-  model: import('ai').LanguageModel;
+  model: import('ai').LanguageModel | undefined;
   output?: ReturnType<typeof import('ai').Output.object>;
 };
 

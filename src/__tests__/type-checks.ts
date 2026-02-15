@@ -27,10 +27,14 @@ declare module '../types.ts' {
 
 declare const client: PromptlyClient;
 
-// --- model is required (not optional) ---
+// --- model may be undefined when auto-resolution fails ---
 
-type _ModelOnResult = Expect<Equal<PromptResult['model'], LanguageModel>>;
-type _ModelOnAiParams = Expect<Equal<AiParams['model'], LanguageModel>>;
+type _ModelOnResult = Expect<
+  Equal<PromptResult['model'], LanguageModel | undefined>
+>;
+type _ModelOnAiParams = Expect<
+  Equal<AiParams['model'], LanguageModel | undefined>
+>;
 
 // --- getPrompt() without version → latest variables ---
 
