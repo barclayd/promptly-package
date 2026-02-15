@@ -60,6 +60,11 @@ export type PromptConfig = {
   inputDataRootName: string | null;
 };
 
+export type PublishedVersion = {
+  version: string;
+  userMessage: string;
+};
+
 export type PromptResponse = {
   promptId: string;
   promptName: string;
@@ -67,6 +72,7 @@ export type PromptResponse = {
   systemMessage: string;
   userMessage: string;
   config: PromptConfig;
+  publishedVersions?: PublishedVersion[];
 };
 
 // Augmentable by codegen via declaration merging
@@ -77,9 +83,21 @@ export interface PromptVariableMap {}
 // Suggests known prompt IDs with autocomplete, accepts any string
 export type PromptId = keyof PromptVariableMap | (string & {});
 
-// Resolves variables for a prompt ID
-type VariablesFor<Id extends string> = Id extends keyof PromptVariableMap
-  ? PromptVariableMap[Id]
+// Autocomplete for known versions, accepts any string
+// Excludes 'latest' — it's a type-level default, not a real API version string
+export type PromptVersion<Id extends string> =
+  Id extends keyof PromptVariableMap
+    ? Exclude<keyof PromptVariableMap[Id], 'latest'> | (string & {})
+    : string;
+
+// Resolves variables for a prompt ID + version (default: latest)
+type VariablesFor<
+  Id extends string,
+  Ver extends string = 'latest',
+> = Id extends keyof PromptVariableMap
+  ? Ver extends keyof PromptVariableMap[Id]
+    ? PromptVariableMap[Id][Ver]
+    : Record<string, string>
   : Record<string, string>;
 
 // Generic over variable shape
@@ -107,9 +125,14 @@ export type PromptRequest = {
 
 // Mapped tuple: each position gets its own typed PromptResult
 type GetPromptsResults<T extends readonly PromptRequest[]> = {
-  [K in keyof T]: T[K] extends { promptId: infer Id extends string }
-    ? PromptResult<VariablesFor<Id>>
-    : PromptResult;
+  [K in keyof T]: T[K] extends {
+    promptId: infer Id extends string;
+    version: infer Ver extends string;
+  }
+    ? PromptResult<VariablesFor<Id, Ver>>
+    : T[K] extends { promptId: infer Id extends string }
+      ? PromptResult<VariablesFor<Id, 'latest'>>
+      : PromptResult;
 };
 
 export type ErrorCode =
@@ -134,8 +157,8 @@ export type PromptlyClientConfig = {
   baseUrl?: string;
 };
 
-export type GetOptions = {
-  version?: string;
+export type GetOptions<V extends string = string> = {
+  version?: V;
 };
 
 export type AiParamsOptions = {
@@ -152,14 +175,17 @@ export type AiParams = {
 };
 
 export type PromptlyClient = {
-  get: <T extends string>(
+  get: <T extends string, V extends string = 'latest'>(
     promptId: T,
-    options?: GetOptions,
-  ) => Promise<PromptResult<VariablesFor<T>>>;
+    options?: GetOptions<V>,
+  ) => Promise<PromptResult<VariablesFor<T, V>>>;
 
   getPrompts: <const T extends readonly PromptRequest[]>(
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
 
-  aiParams: (promptId: string, options?: AiParamsOptions) => Promise<AiParams>;
+  aiParams: <T extends string, V extends string = 'latest'>(
+    promptId: T,
+    options?: { version?: V; variables?: VariablesFor<T, V> },
+  ) => Promise<AiParams>;
 };

@@ -114,9 +114,9 @@ export const createPromptlyClient = (
     return response.json() as Promise<PromptResponse>;
   };
 
-  const get = async <T extends string>(
+  const get = async <T extends string, V extends string = 'latest'>(
     promptId: T,
-    options?: GetOptions,
+    options?: GetOptions<V>,
   ): Promise<PromptResult> => {
     const response = await fetchPrompt(promptId, options);
     const model = await resolveModel(response.config.model);

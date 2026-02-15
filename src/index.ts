@@ -15,6 +15,8 @@ export type {
   PromptResponse,
   PromptResult,
   PromptVariableMap,
+  PromptVersion,
+  PublishedVersion,
   SchemaField,
   SchemaFieldParams,
   ValidationRule,

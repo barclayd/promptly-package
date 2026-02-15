@@ -148,6 +148,7 @@ test.skipIf(!TEST_API_KEY)(
     for (const prompt of prompts) {
       expect(declaration).toContain(`// v${prompt.version}`);
       expect(declaration).toContain(`'${prompt.promptId}'`);
+      expect(declaration).toContain('latest:');
       const vars = extractTemplateVariables(prompt.userMessage);
       for (const v of vars) {
         expect(declaration).toContain(`${v}: string;`);
