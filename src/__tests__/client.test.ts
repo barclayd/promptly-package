@@ -436,6 +436,7 @@ test('getPrompt() uses model callback from config when provided', async () => {
 
 test('getSdkModelId() maps anthropic CMS IDs to API model IDs', () => {
   expect(getSdkModelId('claude-haiku-4.5')).toBe('claude-haiku-4-5-20251001');
+  expect(getSdkModelId('claude-sonnet-4.6')).toBe('claude-sonnet-4-6');
   expect(getSdkModelId('claude-sonnet-4.5')).toBe('claude-sonnet-4-5-20250929');
   expect(getSdkModelId('claude-opus-4.6')).toBe('claude-opus-4-6-20250917');
   expect(getSdkModelId('claude-opus-4')).toBe('claude-opus-4-20250514');
