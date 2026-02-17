@@ -146,7 +146,7 @@ The SDK automatically resolves models configured in the CMS to the correct AI SD
 | `gemini-*` | Google | `@ai-sdk/google` |
 | `mistral-*`, `mixtral-*`, `codestral-*` | Mistral | `@ai-sdk/mistral` |
 
-CMS model display names (e.g. `claude-sonnet-4.5`) are mapped to their full API model IDs automatically.
+CMS model display names (e.g. `claude-sonnet-4.6`) are mapped to their full API model IDs automatically.
 
 ### Custom model resolver
 
@@ -157,7 +157,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 
 const promptly = createPromptlyClient({
   apiKey: process.env.PROMPTLY_API_KEY,
-  model: (modelId) => anthropic('claude-sonnet-4-5-20250929'),
+  model: (modelId) => anthropic('claude-sonnet-4-6'),
 });
 ```
 
