@@ -155,6 +155,19 @@ Uses **declaration merging** (Prisma/GraphQL Code Generator pattern):
 - **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5
 - **Dev:** @biomejs/biome, @changesets/cli, @changesets/changelog-github, @types/bun, @typescript/native-preview, tsup
 
+### Model resolution
+
+The SDK maps CMS display names to API model IDs in `MODEL_ID_MAP` (`src/client.ts`). When a new model is released, use `/add-model` — a project slash command that walks through all the touchpoints:
+
+- `src/client.ts` — `MODEL_ID_MAP` (CMS display name → API model ID)
+- `src/__tests__/client.test.ts` — `getSdkModelId()` test assertions
+- `docs/src/content/docs/guides/model-resolution.mdx` — mapping table + examples
+- `docs/src/content/docs/api/overview.mdx` — example JSON responses
+- `docs/src/content/docs/api/endpoints.mdx` — example JSON responses
+- `README.md` — inline examples
+
+CMS display names use dots (e.g. `claude-sonnet-4.6`), API model IDs use dashes (e.g. `claude-sonnet-4-6`). Some older models include a date suffix (e.g. `claude-sonnet-4-5-20250929`).
+
 ## Code style
 
 - Functional TypeScript, arrow functions only
