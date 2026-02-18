@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.2.0
+
+### Minor Changes
+
+- [#13](https://github.com/barclayd/promptly-package/pull/13) [`7e61c6b`](https://github.com/barclayd/promptly-package/commit/7e61c6b67671dd1bf1176befa0b1c8af843d82a6) Thanks [@barclayd](https://github.com/barclayd)! - Add Claude Sonnet 4.6 model support to CMS display name mapping
+
 ## 0.1.2
 
 ### Patch Changes
