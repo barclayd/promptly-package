@@ -15,17 +15,15 @@ import { generateText } from 'ai';
 
 const promptly = createPromptlyClient();
 
-const { introPrompt, reviewPrompt, formatComposer } =
-  await promptly.getComposer('article-composer', {
-    input: { topic: 'TypeScript', audience: 'developers' },
-  });
-
-const output = formatComposer({
-  introPrompt: await generateText(introPrompt),
-  reviewPrompt: await generateText(reviewPrompt),
+const composer = await promptly.getComposer('article-composer', {
+  input: { topic: 'TypeScript', audience: 'developers' },
 });
-// output is a single string: static HTML + AI-generated text interleaved
+
+// One line — runs all prompts in parallel and assembles the output
+const output = await composer.compose(generateText);
 ```
+
+`compose()` calls your generate function for each prompt, runs them in parallel via `Promise.all`, and assembles the static HTML + AI text into a single string.
 
 ## How it works
 
@@ -35,6 +33,28 @@ const output = formatComposer({
 4. **Return named prompts** - Each prompt is available as a camelCased property with an AI SDK compatible shape
 5. **You run the AI calls** - Pass each prompt to `generateText()` or `streamText()`
 6. **Assemble** - `formatComposer()` interleaves static content with your AI results in document order
+
+## `compose()` — the simple path
+
+The `compose()` method handles the entire flow: it runs your generate function for each prompt in parallel and assembles the result:
+
+```typescript
+const output = await composer.compose(generateText);
+```
+
+### With per-prompt overrides
+
+Pass a wrapper function to customise parameters:
+
+```typescript
+const output = await composer.compose((prompt) =>
+  generateText({ ...prompt, maxTokens: 500 })
+);
+```
+
+### When you need more control
+
+For advanced use cases (different settings per prompt, streaming, structured output), use the manual flow with named prompts and `formatComposer()` described in the sections below.
 
 ## Single composer
 

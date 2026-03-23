@@ -138,7 +138,7 @@ The model configured in the CMS is auto-resolved to the correct AI SDK provider.
 
 ## Fetching composers
 
-A composer is a document template that combines static HTML segments with prompt references. Fetch a composer, run each prompt through the AI SDK, then assemble the final output:
+A composer is a document template that combines static HTML segments with prompt references. Fetch a composer and use `compose()` to run all prompts and assemble the output in one call:
 
 ```typescript
 import { generateText } from 'ai';
@@ -147,20 +147,27 @@ const composer = await promptly.getComposer('my-composer-id', {
   input: { text: 'Hello world', targetLang: 'French' },
 });
 
-// Named prompts are AI SDK compatible — spread directly into generateText()
+// One line — runs all prompts in parallel, assembles the output
+const output = await composer.compose(generateText);
+```
+
+Override parameters per prompt:
+
+```typescript
+const output = await composer.compose((prompt) =>
+  generateText({ ...prompt, maxTokens: 500 })
+);
+```
+
+For full control, use the manual flow with named prompts and `formatComposer()`:
+
+```typescript
 const { introPrompt, reviewPrompt, formatComposer } = composer;
 
 const output = formatComposer({
   introPrompt: await generateText(introPrompt),
   reviewPrompt: await generateText(reviewPrompt),
 });
-// => single string: static HTML + AI text interleaved in document order
-```
-
-Each named prompt has `{ model, system, prompt, temperature }` — the same shape `generateText()` expects. Override any parameter:
-
-```typescript
-await generateText({ ...introPrompt, maxTokens: 500 });
 ```
 
 Batch fetch multiple composers in parallel:

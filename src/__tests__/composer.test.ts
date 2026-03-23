@@ -431,6 +431,76 @@ test('formatComposer() skips missing results', async () => {
   expect(output).toBe('<p>Hello</p>Only intro.<p>---</p><p>End</p>');
 });
 
+// --- compose() ---
+
+test('compose() calls generate for each prompt and assembles output', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const mockGenerate = async () => ({ text: 'Generated.' });
+  const output = await result.compose(mockGenerate);
+
+  expect(output).toBe('<p>Hello</p>Generated.<p>---</p>Generated.<p>End</p>');
+});
+
+test('compose() passes ComposerPrompt with correct fields to generate function', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const receivedPrompts: unknown[] = [];
+  const mockGenerate = async (prompt: unknown) => {
+    receivedPrompts.push(prompt);
+    return { text: 'ok' };
+  };
+
+  await result.compose(mockGenerate);
+
+  expect(receivedPrompts).toHaveLength(2);
+  const first = receivedPrompts[0] as Record<string, unknown>;
+  expect(first).toHaveProperty('model');
+  expect(first).toHaveProperty('system');
+  expect(first).toHaveProperty('prompt');
+  expect(first).toHaveProperty('temperature');
+  expect(first.prompt).toBe('Write an intro for Dan.');
+});
+
+test('compose() works with raw string return from generate', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const mockGenerate = async () => 'Raw text.';
+  const output = await result.compose(mockGenerate);
+
+  expect(output).toBe('<p>Hello</p>Raw text.<p>---</p>Raw text.<p>End</p>');
+});
+
+test('compose() runs prompts in parallel', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const callOrder: string[] = [];
+  const mockGenerate = async (prompt: { promptName: string }) => {
+    callOrder.push(`start:${prompt.promptName}`);
+    await new Promise((r) => setTimeout(r, 10));
+    callOrder.push(`end:${prompt.promptName}`);
+    return { text: prompt.promptName };
+  };
+
+  await result.compose(mockGenerate);
+
+  // Both should start before either ends (parallel execution via Promise.all)
+  expect(callOrder[0]).toBe('start:Intro Prompt');
+  expect(callOrder[1]).toBe('start:Review Prompt');
+});
+
 // --- getComposers() ---
 
 test('getComposers() fetches multiple composers in parallel', async () => {

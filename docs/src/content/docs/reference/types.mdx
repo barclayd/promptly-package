@@ -125,6 +125,7 @@ type ComposerResult<Names extends string = string> = {
   segments: ComposerSegment[];
   prompts: ComposerPrompt[];
   formatComposer: ComposerFormatFn<Names>;
+  compose: (generate: ComposerGenerateFn) => Promise<string>;
 } & {
   [K in Names]: ComposerPrompt;
 };
@@ -200,6 +201,18 @@ The value type accepted by `formatComposer()` for each prompt result. Accepts ei
 ```typescript
 type FormatInput = { text: string } | string;
 ```
+
+### `ComposerGenerateFn`
+
+The function type accepted by `compose()`. Any function that takes a `ComposerPrompt` and returns a `{ text: string }` object or a raw string.
+
+```typescript
+type ComposerGenerateFn = (
+  prompt: ComposerPrompt,
+) => Promise<{ text: string } | string>;
+```
+
+Compatible with `generateText` from the Vercel AI SDK.
 
 ### `ComposerFormatFn<Names>`
 

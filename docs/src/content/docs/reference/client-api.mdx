@@ -157,6 +157,7 @@ const composer = await promptly.getComposer('my-composer', {
 | `segments` | `ComposerSegment[]` | Raw segment data from the API |
 | `prompts` | `ComposerPrompt[]` | De-duplicated array of resolved prompts |
 | `formatComposer` | `ComposerFormatFn<Names>` | Function to reassemble the final output from prompt results |
+| `compose` | `(generate: ComposerGenerateFn) => Promise<string>` | Convenience method — runs all prompts through your generate function in parallel and assembles the output |
 | `[promptName]` | `ComposerPrompt` | Each prompt is also available as a named property (camelCase of the prompt name) |
 
 ### Named prompt properties
@@ -194,6 +195,22 @@ type ComposerPrompt = {
   promptName: string;
 };
 ```
+
+### `compose()` usage
+
+The simplest way to run a composer. Pass your AI SDK generate function and get back the assembled string:
+
+```typescript
+// Simple — runs all prompts in parallel
+const output = await composer.compose(generateText);
+
+// With overrides per prompt
+const output = await composer.compose((prompt) =>
+  generateText({ ...prompt, maxTokens: 500 })
+);
+```
+
+`compose()` accepts any function matching `(prompt: ComposerPrompt) => Promise<{ text: string } | string>`.
 
 ### `formatComposer()` usage
 

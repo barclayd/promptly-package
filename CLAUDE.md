@@ -172,11 +172,13 @@ A **composer** is a document template combining static HTML segments with prompt
 5. Build `ComposerPrompt` objects with AI SDK shape: `{ model, system, prompt, temperature }`
 6. De-duplicate prompts by camelCased name (same prompt twice shares one object)
 7. Build `formatComposer()` closure: takes `Record<promptName, { text } | string>`, iterates document-order segments, splices in AI results, returns single string
-8. Return result with named prompt properties + `prompts` array + `formatComposer()`
+8. Build `compose()` closure: convenience method that takes a generate function (e.g. `generateText`), runs it for each prompt via `Promise.all`, maps results back to prompt names, calls `formatComposer()`, returns assembled string
+9. Return result with named prompt properties + `prompts` array + `formatComposer()` + `compose()`
 
 Key design decisions:
 - Variables are interpolated at `getComposer()` time (not at `formatComposer()` time)
-- `formatComposer()` accepts both `{ text: string }` (from generateText) and raw strings
+- `compose(generateText)` is the simple path — runs all prompts in parallel and assembles the output
+- `formatComposer()` is the manual path — accepts both `{ text: string }` (from generateText) and raw strings
 - Prompt names are camelCased from CMS promptName (e.g. "Intro Prompt" → `introPrompt`)
 - Duplicate prompts share one result — `formatComposer()` reuses it at both document positions
 - The `prompts` array is ordered by first appearance in the document, de-duplicated

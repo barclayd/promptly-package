@@ -9,6 +9,7 @@ export { PromptlyError } from './errors.ts';
 export type {
   ComposerConfig,
   ComposerFormatFn,
+  ComposerGenerateFn,
   ComposerId,
   ComposerInputFor,
   ComposerPrompt,

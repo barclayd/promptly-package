@@ -212,6 +212,10 @@ export type ComposerPrompt = {
 
 export type FormatInput = { text: string } | string;
 
+export type ComposerGenerateFn = (
+  prompt: ComposerPrompt,
+) => Promise<{ text: string } | string>;
+
 export type ComposerFormatFn<Names extends string = string> = (
   results: Record<Names, FormatInput>,
 ) => string;
@@ -224,6 +228,7 @@ export type ComposerResult<Names extends string = string> = {
   segments: ComposerSegment[];
   prompts: ComposerPrompt[];
   formatComposer: ComposerFormatFn<Names>;
+  compose: (generate: ComposerGenerateFn) => Promise<string>;
 } & {
   [K in Names]: ComposerPrompt;
 };

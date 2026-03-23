@@ -1,5 +1,6 @@
 import { createErrorFromResponse, PromptlyError } from './errors.ts';
 import type {
+  ComposerGenerateFn,
   ComposerPrompt,
   ComposerRequest,
   ComposerResponse,
@@ -338,6 +339,18 @@ export const createPromptlyClient = (
       return parts.join('');
     };
 
+    const compose = async (generate: ComposerGenerateFn): Promise<string> => {
+      const entries = [...promptsByName.entries()];
+      const results = await Promise.all(
+        entries.map(([, prompt]) => generate(prompt)),
+      );
+      const resultMap: Record<string, FormatInput> = {};
+      entries.forEach(([name], i) => {
+        resultMap[name] = results[i] ?? '';
+      });
+      return formatComposer(resultMap);
+    };
+
     const result: Record<string, unknown> = {
       composerId: response.composerId,
       composerName: response.composerName,
@@ -346,6 +359,7 @@ export const createPromptlyClient = (
       segments: response.segments,
       prompts: promptsOrdered,
       formatComposer,
+      compose,
     };
 
     for (const [name, prompt] of promptsByName) {
