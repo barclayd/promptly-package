@@ -27,7 +27,7 @@
     "types": "tsgo --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "bun test",
+    "test": "bun test src/__tests__/client src/__tests__/codegen src/__tests__/composer src/__tests__/generate src/__tests__/schema",
     "test:smoke": "bun test src/__tests__/smoke.test.ts",
     "test:watch": "bun test --watch",
     "prepublishOnly": "bun run build"
