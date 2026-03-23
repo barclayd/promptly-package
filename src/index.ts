@@ -1,8 +1,31 @@
-export { createPromptlyClient, getSdkModelId, interpolate } from './client.ts';
+export {
+  createPromptlyClient,
+  getSdkModelId,
+  interpolate,
+  interpolateStaticSegment,
+  toCamelCase,
+} from './client.ts';
 export { PromptlyError } from './errors.ts';
 export type {
+  ComposerConfig,
+  ComposerFormatFn,
+  ComposerId,
+  ComposerInputFor,
+  ComposerPrompt,
+  ComposerPromptMap,
+  ComposerPromptNamesFor,
+  ComposerPromptSegment,
+  ComposerRequest,
+  ComposerResponse,
+  ComposerResult,
+  ComposerSegment,
+  ComposerStaticSegment,
+  ComposerVariableMap,
+  ComposerVersion,
   ErrorCode,
   ErrorResponse,
+  FormatInput,
+  GetComposerOptions,
   GetOptions,
   PromptConfig,
   PromptId,

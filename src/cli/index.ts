@@ -83,7 +83,7 @@ const generateCommand = defineCommand({
   meta: {
     name: 'generate',
     description:
-      'Generate typed TypeScript declarations from Promptly CMS prompts',
+      'Generate typed TypeScript declarations from Promptly CMS prompts and composers',
   },
   args: {
     output: {

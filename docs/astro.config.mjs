@@ -71,6 +71,10 @@ export default defineConfig({
               slug: 'guides/fetching-prompts',
             },
             {
+              label: 'Fetching Composers',
+              slug: 'guides/fetching-composers',
+            },
+            {
               label: 'AI SDK Integration',
               slug: 'guides/ai-sdk-integration',
             },

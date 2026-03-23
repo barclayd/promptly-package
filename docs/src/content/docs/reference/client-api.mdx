@@ -1,6 +1,6 @@
 ---
 title: Client API
-description: Full API reference for createPromptlyClient, getPrompt, and getPrompts.
+description: Full API reference for createPromptlyClient, getPrompt, getPrompts, getComposer, and getComposers.
 ---
 
 ## `createPromptlyClient(config?)`
@@ -25,7 +25,7 @@ const promptly = createPromptlyClient({
 
 ### Return type
 
-Returns a `PromptlyClient` with two methods: `getPrompt()` and `getPrompts()`.
+Returns a `PromptlyClient` with four methods: `getPrompt()`, `getPrompts()`, `getComposer()`, and `getComposers()`.
 
 ### Throws
 
@@ -122,6 +122,145 @@ Returns `GetPromptsResults<T>` - a mapped tuple where each position is typed to 
 ```typescript
 client.getPrompts<const T extends readonly PromptRequest[]>(entries: T)
   => Promise<GetPromptsResults<T>>
+```
+
+The `const` type parameter preserves literal string types from the input array.
+
+---
+
+## `client.getComposer(composerId, options?)`
+
+Fetches a single composer by ID. Resolves all prompt segments into AI SDK-compatible objects and returns a `formatComposer()` function to reassemble the final output.
+
+```typescript
+const composer = await promptly.getComposer('my-composer', {
+  input: { text: 'Hello world', targetLang: 'French' },
+});
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `composerId` | `ComposerId` | Yes | The composer ID to fetch. Autocompletes known IDs if codegen types are present. |
+| `options.version` | `string` | No | Specific version to fetch (default: latest) |
+| `options.input` | `Record<string, string>` | No | Input variables to interpolate into static segments and prompt user messages |
+
+### Return type: `ComposerResult<Names>`
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `composerId` | `string` | The composer ID |
+| `composerName` | `string` | Human-readable composer name |
+| `version` | `string` | The resolved version |
+| `config` | `ComposerConfig` | Full config including schema fields |
+| `segments` | `ComposerSegment[]` | Raw segment data from the API |
+| `prompts` | `ComposerPrompt[]` | De-duplicated array of resolved prompts |
+| `formatComposer` | `ComposerFormatFn<Names>` | Function to reassemble the final output from prompt results |
+| `[promptName]` | `ComposerPrompt` | Each prompt is also available as a named property (camelCase of the prompt name) |
+
+### Named prompt properties
+
+Each prompt segment in the composer is exposed as a camelCase property on the result. For example, a prompt named "Intro Prompt" becomes `introPrompt`:
+
+```typescript
+const { introPrompt, reviewPrompt, formatComposer } = await promptly.getComposer(
+  'my-composer',
+  { input: { topic: 'TypeScript' } },
+);
+
+// Each named prompt is a ComposerPrompt - spread directly into generateText()
+const introResult = await generateText(introPrompt);
+const reviewResult = await generateText(reviewPrompt);
+
+// Reassemble the final output
+const output = formatComposer({
+  introPrompt: introResult,
+  reviewPrompt: reviewResult,
+});
+```
+
+### `ComposerPrompt` shape
+
+Each prompt object has properties that map directly to AI SDK function parameters:
+
+```typescript
+type ComposerPrompt = {
+  model: LanguageModel;
+  system: string | undefined;
+  prompt: string;
+  temperature: number;
+  promptId: string;
+  promptName: string;
+};
+```
+
+### `formatComposer()` usage
+
+The `formatComposer()` function accepts a record mapping prompt names to results. Each value can be either a string or an object with a `text` property (matching the `generateText()` return shape):
+
+```typescript
+// Pass generateText() results directly
+const output = formatComposer({
+  introPrompt: await generateText(introPrompt),
+  reviewPrompt: await generateText(reviewPrompt),
+});
+
+// Or pass plain strings
+const output = formatComposer({
+  introPrompt: 'Hello, world!',
+  reviewPrompt: 'Looks good.',
+});
+```
+
+### Generic type parameters
+
+```typescript
+client.getComposer<
+  T extends string,             // Composer ID
+  V extends ComposerVersion<T>  // Version (default: 'latest')
+>(composerId: T, options?: GetComposerOptions<T, V>)
+  => Promise<ComposerResult<ComposerPromptNamesFor<T>>>
+```
+
+When codegen types are present, `T` narrows to a known composer ID, `ComposerInputFor<T, V>` types the `input` option, and `ComposerPromptNamesFor<T>` types the named prompt keys on the result.
+
+---
+
+## `client.getComposers(entries)`
+
+Fetches multiple composers in parallel.
+
+```typescript
+const [first, second] = await promptly.getComposers([
+  { composerId: 'composer-a', input: { text: 'Hello' } },
+  { composerId: 'composer-b', version: '2.0.0' },
+]);
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `entries` | `readonly ComposerRequest[]` | Yes | Array of composer requests |
+
+Each `ComposerRequest`:
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `composerId` | `string` | Yes | The composer ID |
+| `input` | `Record<string, string>` | No | Input variables for interpolation |
+| `version` | `string` | No | Specific version (default: latest) |
+
+### Return type
+
+Returns `GetComposersResults<T>` - a mapped tuple where each position is typed to the corresponding request's composer prompt names.
+
+### Generic type parameters
+
+```typescript
+client.getComposers<const T extends readonly ComposerRequest[]>(entries: T)
+  => Promise<GetComposersResults<T>>
 ```
 
 The `const` type parameter preserves literal string types from the input array.
