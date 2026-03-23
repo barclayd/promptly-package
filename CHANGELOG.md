@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.3.0
+
+### Minor Changes
+
+- [#15](https://github.com/barclayd/promptly-package/pull/15) [`187a947`](https://github.com/barclayd/promptly-package/commit/187a94727d7f97c46fd5953baca47655d518e67e) Thanks [@barclayd](https://github.com/barclayd)! - Add composer support: `getComposer()`, `getComposers()`, and `formatComposer()` for fetching and assembling multi-segment composer documents. Codegen now generates `ComposerVariableMap` and `ComposerPromptMap` types.
+
 ## 0.2.0
 
 ### Minor Changes
