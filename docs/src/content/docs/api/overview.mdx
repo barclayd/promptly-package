@@ -5,7 +5,7 @@ description: Authenticate and make your first request to the Promptly CMS REST A
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-The Promptly REST API lets you fetch prompts directly over HTTP - no SDK required. Use it from any language or tool that can make HTTP requests.
+The Promptly REST API lets you fetch prompts and composers directly over HTTP - no SDK required. Use it from any language or tool that can make HTTP requests.
 
 ## Base URL
 
@@ -77,6 +77,10 @@ Authorization: Bearer pk_live_...
    ```
 
 </Steps>
+
+## Composers
+
+In addition to individual prompts, the API supports **composers** -- multi-prompt workflows that combine static content with prompt segments. Fetch composers via `GET /composers` and `GET /composers/:composerId`. See the [Endpoints](/api/endpoints/) reference for full details.
 
 ## CORS
 

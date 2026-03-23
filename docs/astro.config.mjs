@@ -18,6 +18,7 @@ const replacePurpleTokens = (theme) => {
 
 export default defineConfig({
   site: 'https://docs.promptlycms.com',
+  devToolbar: { enabled: false },
   integrations: [
     starlight({
       expressiveCode: {
@@ -69,6 +70,10 @@ export default defineConfig({
             {
               label: 'Fetching Prompts',
               slug: 'guides/fetching-prompts',
+            },
+            {
+              label: 'Fetching Composers',
+              slug: 'guides/fetching-composers',
             },
             {
               label: 'AI SDK Integration',

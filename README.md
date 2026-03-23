@@ -3,8 +3,9 @@
 TypeScript SDK for the [Promptly CMS](https://promptlycms.com) API. Stop hardcoding prompts in your codebase — manage them in a purpose-built CMS with versioning and instant publishing, then fetch them at runtime with full type safety.
 
 - **Zero hardcoded prompts** — fetch prompts at runtime; update wording, models, and settings from the [CMS](https://promptlycms.com) without code changes or redeploys
-- **Runtime client** — `getPrompt()` and `getPrompts()` with full TypeScript support
-- **Codegen CLI** — generates typed template variables via declaration merging
+- **Runtime client** — `getPrompt()`, `getPrompts()`, `getComposer()`, and `getComposers()` with full TypeScript support
+- **Composers** — fetch multi-segment documents that combine static HTML with prompt references, then assemble AI-generated output with `formatComposer()`
+- **Codegen CLI** — generates typed template variables and composer types via declaration merging
 - **AI SDK integration** — destructure directly into [Vercel AI SDK](https://ai-sdk.dev/) `generateText` / `streamText`
 - **Any AI provider** — supports [all providers](https://ai-sdk.dev/providers/ai-sdk-providers#provider-support) supported by the Vercel AI SDK
 - **Structured output** — Zod schemas built from CMS-defined output schemas
@@ -46,7 +47,7 @@ PROMPTLY_API_KEY=pk_live_...
 npx promptly generate
 ```
 
-This fetches all your prompts from the API and generates a `promptly-env.d.ts` file in your project root with typed autocomplete for every prompt ID and its template variables.
+This fetches all your prompts and composers from the API and generates a `promptly-env.d.ts` file in your project root with typed autocomplete for every prompt ID, composer ID, template variables, and prompt names.
 
 ```bash
 # Custom output path
@@ -135,6 +136,49 @@ const { text } = await generateText({
 
 The model configured in the CMS is auto-resolved to the correct AI SDK provider.
 
+## Fetching composers
+
+A composer is a document template that combines static HTML segments with prompt references. Fetch a composer and use `compose()` to run all prompts and assemble the output in one call:
+
+```typescript
+import { generateText } from 'ai';
+
+const composer = await promptly.getComposer('my-composer-id', {
+  input: { text: 'Hello world', targetLang: 'French' },
+});
+
+// One line — runs all prompts in parallel, assembles the output
+const output = await composer.compose(generateText);
+```
+
+Override parameters per prompt:
+
+```typescript
+const output = await composer.compose((prompt) =>
+  generateText({ ...prompt, maxTokens: 500 })
+);
+```
+
+For full control, use the manual flow with named prompts and `formatComposer()`:
+
+```typescript
+const { introPrompt, reviewPrompt, formatComposer } = composer;
+
+const output = formatComposer({
+  introPrompt: await generateText(introPrompt),
+  reviewPrompt: await generateText(reviewPrompt),
+});
+```
+
+Batch fetch multiple composers in parallel:
+
+```typescript
+const [first, second] = await promptly.getComposers([
+  { composerId: 'comp-a', input: { name: 'Dan' } },
+  { composerId: 'comp-b', input: { topic: 'AI' } },
+]);
+```
+
 ## Model auto-detection
 
 The SDK automatically resolves models configured in the CMS to the correct AI SDK provider based on the model name prefix:
@@ -187,7 +231,7 @@ declare module '@promptlycms/prompts' {
 }
 ```
 
-With this file present, `getPrompt()` and `getPrompts()` return typed `userMessage` functions with autocomplete. Unknown prompt IDs fall back to `Record<string, string>`.
+With this file present, `getPrompt()` and `getPrompts()` return typed `userMessage` functions with autocomplete. `getComposer()` and `getComposers()` get typed `input` and named prompt properties. Unknown IDs fall back to `Record<string, string>`.
 
 Add the generated file to version control so types are available without running codegen in CI. Re-run `npx promptly generate` whenever you add, remove, or rename template variables in the CMS.
 
@@ -221,7 +265,7 @@ try {
 | `baseUrl` | `string` | No       | API base URL (default: `https://api.promptlycms.com`) |
 | `model`   | `(modelId: string) => LanguageModel` | No | Custom model resolver — overrides auto-detection |
 
-Returns a `PromptlyClient` with `getPrompt()` and `getPrompts()` methods.
+Returns a `PromptlyClient` with `getPrompt()`, `getPrompts()`, `getComposer()`, and `getComposers()` methods.
 
 ### `client.getPrompt(promptId, options?)`
 
@@ -234,6 +278,19 @@ Fetch a single prompt. Returns `PromptResult` with typed `userMessage` when code
 ### `client.getPrompts(entries)`
 
 Fetch multiple prompts in parallel. Accepts `PromptRequest[]` and returns a typed tuple matching the input order.
+
+### `client.getComposer(composerId, options?)`
+
+Fetch a single composer. Returns `ComposerResult` with named prompt properties, a `prompts` array, and `formatComposer()`.
+
+| Option    | Type                      | Description          |
+|-----------|---------------------------|----------------------|
+| `input`   | `Record<string, string>`  | Template variables to interpolate |
+| `version` | `string`                  | Specific version to fetch (default: latest) |
+
+### `client.getComposers(entries)`
+
+Fetch multiple composers in parallel. Accepts `ComposerRequest[]` and returns results in the same order.
 
 ### `@promptlycms/prompts/schema`
 

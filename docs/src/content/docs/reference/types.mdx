@@ -19,6 +19,15 @@ type PromptlyClient = {
   getPrompts: <const T extends readonly PromptRequest[]>(
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
+
+  getComposer: <T extends string, V extends ComposerVersion<T> | 'latest' = 'latest'>(
+    composerId: T,
+    options?: GetComposerOptions<T, V>,
+  ) => Promise<ComposerResult<ComposerPromptNamesFor<T>>>;
+
+  getComposers: <const T extends readonly ComposerRequest[]>(
+    entries: T,
+  ) => Promise<GetComposersResults<T>>;
 };
 ```
 
@@ -101,6 +110,122 @@ type PublishedVersion = {
 
 ---
 
+## Composer types
+
+### `ComposerResult<Names>`
+
+The return type of `getComposer()`. Includes resolved prompts as named properties and a `formatComposer()` function.
+
+```typescript
+type ComposerResult<Names extends string = string> = {
+  composerId: string;
+  composerName: string;
+  version: string;
+  config: ComposerConfig;
+  segments: ComposerSegment[];
+  prompts: ComposerPrompt[];
+  formatComposer: ComposerFormatFn<Names>;
+  compose: (generate: ComposerGenerateFn) => Promise<string>;
+} & {
+  [K in Names]: ComposerPrompt;
+};
+```
+
+### `ComposerPrompt`
+
+An AI SDK-compatible prompt shape. Can be spread directly into `generateText()` or `streamText()`.
+
+```typescript
+type ComposerPrompt = {
+  model: import('ai').LanguageModel;
+  system: string | undefined;
+  prompt: string;
+  temperature: number;
+  promptId: string;
+  promptName: string;
+};
+```
+
+### `ComposerSegment`
+
+A discriminated union of static and prompt segments.
+
+```typescript
+type ComposerStaticSegment = {
+  type: 'static';
+  content: string;
+};
+
+type ComposerPromptSegment = {
+  type: 'prompt';
+  promptId: string;
+  promptName: string;
+  version: string;
+  systemMessage: string | null;
+  userMessage: string | null;
+  config: Record<string, unknown>;
+};
+
+type ComposerSegment = ComposerStaticSegment | ComposerPromptSegment;
+```
+
+### `ComposerConfig`
+
+```typescript
+type ComposerConfig = {
+  schema: SchemaField[];
+  inputData: unknown;
+  inputDataRootName: string | null;
+};
+```
+
+### `ComposerResponse`
+
+The raw API response shape for composers.
+
+```typescript
+type ComposerResponse = {
+  composerId: string;
+  composerName: string;
+  version: string;
+  config: ComposerConfig;
+  segments: ComposerSegment[];
+  publishedVersions?: { version: string }[];
+};
+```
+
+### `FormatInput`
+
+The value type accepted by `formatComposer()` for each prompt result. Accepts either a plain string or an object with a `text` property (matching the `generateText()` return shape).
+
+```typescript
+type FormatInput = { text: string } | string;
+```
+
+### `ComposerGenerateFn`
+
+The function type accepted by `compose()`. Any function that takes a `ComposerPrompt` and returns a `{ text: string }` object or a raw string.
+
+```typescript
+type ComposerGenerateFn = (
+  prompt: ComposerPrompt,
+) => Promise<{ text: string } | string>;
+```
+
+Compatible with `generateText` from the Vercel AI SDK.
+
+### `ComposerFormatFn<Names>`
+
+The function type for `formatComposer()`.
+
+```typescript
+type ComposerFormatFn<Names extends string = string> = (
+  results: Record<Names, FormatInput>,
+) => string;
+```
+
+---
+
 ## Request/option types
 
 ### `PromptRequest`
@@ -120,6 +245,32 @@ Options for `getPrompt()`.
 
 ```typescript
 type GetOptions<V extends string = string> = {
+  version?: V;
+};
+```
+
+### `ComposerRequest`
+
+Used with `getComposers()` for batch fetching.
+
+```typescript
+type ComposerRequest = {
+  composerId: string;
+  input?: Record<string, string>;
+  version?: string;
+};
+```
+
+### `GetComposerOptions<Id, V>`
+
+Options for `getComposer()`.
+
+```typescript
+type GetComposerOptions<
+  Id extends string = string,
+  V extends string = 'latest',
+> = {
+  input?: ComposerInputFor<Id, V>;
   version?: V;
 };
 ```
@@ -187,6 +338,65 @@ type GetPromptsResults<T extends readonly PromptRequest[]> = {
 };
 ```
 
+### `ComposerVariableMap`
+
+Empty interface augmented by codegen. Must remain an `interface` (not `type`) for declaration merging to work. Maps composer IDs to their input variable shapes per version.
+
+```typescript
+interface ComposerVariableMap {}
+```
+
+### `ComposerPromptMap`
+
+Empty interface augmented by codegen. Must remain an `interface` (not `type`) for declaration merging to work. Maps composer IDs to a union of their camelCase prompt name strings.
+
+```typescript
+interface ComposerPromptMap {}
+```
+
+### `ComposerId`
+
+Suggests known composer IDs while accepting any string.
+
+```typescript
+type ComposerId = keyof ComposerVariableMap | (string & {});
+```
+
+### `ComposerVersion<Id>`
+
+Resolves to known version strings for a composer ID, excluding `'latest'`.
+
+```typescript
+type ComposerVersion<Id extends string> =
+  Id extends keyof ComposerVariableMap
+    ? Exclude<keyof ComposerVariableMap[Id], 'latest'>
+    : string;
+```
+
+### `ComposerInputFor<Id, Ver>`
+
+Resolves the input variable shape for a composer ID and version. Falls back to `Record<string, string>` for unknown IDs or versions.
+
+```typescript
+type ComposerInputFor<
+  Id extends string,
+  Ver extends string = 'latest',
+> = Id extends keyof ComposerVariableMap
+  ? Ver extends keyof ComposerVariableMap[Id]
+    ? ComposerVariableMap[Id][Ver]
+    : Record<string, string>
+  : Record<string, string>;
+```
+
+### `ComposerPromptNamesFor<Id>`
+
+Resolves the prompt name union for a composer ID from `ComposerPromptMap`. Falls back to `string` for unknown IDs.
+
+```typescript
+type ComposerPromptNamesFor<Id extends string> =
+  Id extends keyof ComposerPromptMap ? ComposerPromptMap[Id] : string;
+```
+
 ---
 
 ## Error types
@@ -211,7 +421,8 @@ type ErrorCode =
   | 'NOT_FOUND'
   | 'VERSION_NOT_FOUND'
   | 'BAD_REQUEST'
-  | 'USAGE_LIMIT_EXCEEDED';
+  | 'USAGE_LIMIT_EXCEEDED'
+  | 'UNRESOLVED_PROMPT';
 ```
 
 ### `ErrorResponse`

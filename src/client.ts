@@ -1,5 +1,11 @@
 import { createErrorFromResponse, PromptlyError } from './errors.ts';
 import type {
+  ComposerGenerateFn,
+  ComposerPrompt,
+  ComposerRequest,
+  ComposerResponse,
+  FormatInput,
+  GetComposerOptions,
   GetOptions,
   PromptlyClient,
   PromptlyClientConfig,
@@ -145,6 +151,44 @@ const createModelResolver = (
   };
 };
 
+export const toCamelCase = (name: string): string =>
+  name
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_, char: string) => char.toUpperCase())
+    .replace(/^[A-Z]/, (char) => char.toLowerCase());
+
+const VARIABLE_REF_REGEX =
+  /<span[^>]*\sdata-variable-ref(?:="[^"]*")?[^>]*\sdata-field-path="([^"]+)"[^>]*><\/span>/g;
+
+const VARIABLE_REF_ALT_REGEX =
+  /<span[^>]*\sdata-field-path="([^"]+)"[^>]*\sdata-variable-ref(?:="[^"]*")?[^>]*><\/span>/g;
+
+const MUSTACHE_REGEX = /\{\{(\w[\w.]*)\}\}/g;
+
+export const interpolateStaticSegment = (
+  content: string,
+  input: Record<string, string>,
+): string => {
+  let result = content;
+
+  // Replace <span data-variable-ref data-field-path="X"></span> (both attribute orderings)
+  result = result.replace(
+    VARIABLE_REF_REGEX,
+    (_, fieldPath: string) => input[fieldPath] ?? '',
+  );
+  result = result.replace(
+    VARIABLE_REF_ALT_REGEX,
+    (_, fieldPath: string) => input[fieldPath] ?? '',
+  );
+
+  // Replace {{fieldPath}} mustache patterns
+  result = result.replace(
+    MUSTACHE_REGEX,
+    (_, fieldPath: string) => input[fieldPath] ?? '',
+  );
+
+  return result;
+};
+
 export const createPromptlyClient = (
   config?: PromptlyClientConfig,
 ): PromptlyClient => {
@@ -204,5 +248,143 @@ export const createPromptlyClient = (
     return results;
   };
 
-  return { getPrompt, getPrompts } as PromptlyClient;
+  const fetchComposer = async (
+    composerId: string,
+    options?: { version?: string },
+  ): Promise<ComposerResponse> => {
+    const url = new URL(`/composers/${composerId}`, baseUrl);
+    if (options?.version) {
+      url.searchParams.set('version', options.version);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw await createErrorFromResponse(response);
+    }
+
+    return response.json() as Promise<ComposerResponse>;
+  };
+
+  const getComposer = async <T extends string, V extends string = 'latest'>(
+    composerId: T,
+    options?: GetComposerOptions<T, V>,
+  ) => {
+    const response = await fetchComposer(composerId, options);
+    const input = (options?.input as Record<string, string> | undefined) ?? {};
+
+    // Track processed segments for format() and de-duplicated prompts
+    const promptsByName = new Map<string, ComposerPrompt>();
+    const promptsOrdered: ComposerPrompt[] = [];
+    const processedSegments: Array<
+      | { type: 'static'; content: string }
+      | { type: 'prompt'; camelName: string }
+    > = [];
+
+    for (const segment of response.segments) {
+      if (segment.type === 'static') {
+        processedSegments.push({
+          type: 'static',
+          content: interpolateStaticSegment(segment.content, input),
+        });
+        continue;
+      }
+
+      const camelName = toCamelCase(segment.promptName);
+
+      if (!promptsByName.has(camelName)) {
+        const segmentConfig = segment.config as {
+          model?: string;
+          temperature?: number;
+        };
+        const model = await modelResolver(segmentConfig.model ?? '');
+        const userMessage = segment.userMessage
+          ? interpolate(segment.userMessage, input)
+          : '';
+        const temperature = segmentConfig.temperature ?? 0.7;
+
+        const composerPrompt: ComposerPrompt = {
+          model,
+          system: segment.systemMessage ?? undefined,
+          prompt: userMessage,
+          temperature,
+          promptId: segment.promptId,
+          promptName: segment.promptName,
+        };
+
+        promptsByName.set(camelName, composerPrompt);
+        promptsOrdered.push(composerPrompt);
+      }
+
+      processedSegments.push({ type: 'prompt', camelName });
+    }
+
+    const formatComposer = (results: Record<string, FormatInput>): string => {
+      const parts: string[] = [];
+      for (const seg of processedSegments) {
+        if (seg.type === 'static') {
+          parts.push(seg.content);
+          continue;
+        }
+        const val = results[seg.camelName];
+        if (val === undefined) {
+          continue;
+        }
+        parts.push(typeof val === 'string' ? val : val.text);
+      }
+      return parts.join('');
+    };
+
+    const compose = async (generate: ComposerGenerateFn): Promise<string> => {
+      const entries = [...promptsByName.entries()];
+      const results = await Promise.all(
+        entries.map(([, prompt]) => generate(prompt)),
+      );
+      const resultMap: Record<string, FormatInput> = {};
+      entries.forEach(([name], i) => {
+        resultMap[name] = results[i] ?? '';
+      });
+      return formatComposer(resultMap);
+    };
+
+    const result: Record<string, unknown> = {
+      composerId: response.composerId,
+      composerName: response.composerName,
+      version: response.version,
+      config: response.config,
+      segments: response.segments,
+      prompts: promptsOrdered,
+      formatComposer,
+      compose,
+    };
+
+    for (const [name, prompt] of promptsByName) {
+      result[name] = prompt;
+    }
+
+    return result;
+  };
+
+  const getComposers = async (entries: readonly ComposerRequest[]) => {
+    const results = await Promise.all(
+      entries.map((entry) =>
+        getComposer(entry.composerId, {
+          input: entry.input,
+          version: entry.version,
+        }),
+      ),
+    );
+    return results;
+  };
+
+  return {
+    getPrompt,
+    getPrompts,
+    getComposer,
+    getComposers,
+  } as PromptlyClient;
 };

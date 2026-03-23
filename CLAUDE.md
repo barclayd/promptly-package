@@ -113,8 +113,8 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 ## Project
 
 This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It provides:
-- A **runtime client** for fetching prompts (`getPrompt`, `getPrompts`)
-- A **codegen CLI** that generates `promptly-env.d.ts` with typed template variables via declaration merging
+- A **runtime client** for fetching prompts (`getPrompt`, `getPrompts`) and composers (`getComposer`, `getComposers`)
+- A **codegen CLI** that generates `promptly-env.d.ts` with typed template variables and composer types via declaration merging
 
 ### Key scripts
 
@@ -126,12 +126,12 @@ This is `@promptlycms/prompts` — a TypeScript SDK for the Promptly CMS API. It
 
 ### Project structure
 
-- `src/client.ts` — runtime client (`createPromptlyClient`) with `getPrompt()` and `getPrompts()` methods
+- `src/client.ts` — runtime client (`createPromptlyClient`) with `getPrompt()`, `getPrompts()`, `getComposer()`, and `getComposers()` methods. Also contains `toCamelCase()`, `interpolateStaticSegment()`, `interpolate()`, model resolution helpers.
 - `src/schema/builder.ts` — builds Zod schemas from `SchemaField[]` at runtime
 - `src/schema/codegen.ts` — generates Zod source code strings from `SchemaField[]`
 - `src/errors.ts` — `PromptlyError` class with `code`, `status`, `usage`, `upgradeUrl`
-- `src/types.ts` — shared types (`PromptResponse`, `SchemaField`, `PromptVariableMap`, etc.)
-- `src/cli/generate.ts` — codegen: `fetchAllPrompts()`, `generateTypeDeclaration()`, `generate()`
+- `src/types.ts` — shared types (`PromptResponse`, `ComposerResponse`, `SchemaField`, `PromptVariableMap`, `ComposerVariableMap`, `ComposerPromptMap`, etc.)
+- `src/cli/generate.ts` — codegen: `fetchAllPrompts()`, `fetchAllComposers()`, `generateTypeDeclaration()`, `generate()`
 - `src/cli/index.ts` — CLI entry point (`promptly generate` command)
 - `src/__tests__/` — flat test files (no `describe` nesting)
 
@@ -145,9 +145,43 @@ Uses **declaration merging** (Prisma/GraphQL Code Generator pattern):
 - `GetPromptsResults<T>` — mapped tuple type for batch `getPrompts()` that types each position
 - `PromptVariableMap` must remain an `interface` (not `type`) for declaration merging to work
 
+Composer type system (mirrors prompt types):
+- `ComposerVariableMap` — empty interface, augmented by codegen with composer IDs → version → `{ var: string }` (merged from all prompt segments' `${var}` templates)
+- `ComposerPromptMap` — empty interface, augmented by codegen with composer IDs → union of camelCased prompt name strings
+- `ComposerInputFor<Id, Ver>` — conditional type that narrows input shape for known composers
+- `ComposerPromptNamesFor<Id>` — resolves to prompt name union from `ComposerPromptMap`
+- `ComposerResult<Names>` — result with named prompt properties (`& { [K in Names]: ComposerPrompt }`), `prompts` array, and `formatComposer()` method
+- `ComposerPrompt` — `{ model, system, prompt, temperature, promptId, promptName }` (AI SDK spread-compatible)
+- Both `ComposerVariableMap` and `ComposerPromptMap` must remain `interface` for declaration merging
+
 ### Codegen flow
 
-`npx promptly generate` reads `PROMPTLY_API_KEY` from env (or `--api-key` flag), calls `GET /prompts` to fetch all prompts, extracts `${var}` template variables from `userMessage`, and writes `promptly-env.d.ts` with module augmentation. No config file needed.
+`npx promptly generate` reads `PROMPTLY_API_KEY` from env (or `--api-key` flag), calls `GET /prompts` and `GET /composers` in parallel, extracts `${var}` template variables, and writes `promptly-env.d.ts` with module augmentation. Composers that fail to fetch (e.g. older API) are silently skipped. No config file needed.
+
+### Composer architecture
+
+A **composer** is a document template combining static HTML segments with prompt references. The API (`GET /composers/:id`) returns a `segments` array:
+- `{ type: 'static', content: '<p>HTML</p>' }` — raw HTML, may contain `<span data-variable-ref data-field-path="X"></span>` and `{{fieldPath}}` mustache patterns
+- `{ type: 'prompt', promptId, promptName, version, systemMessage, userMessage, config }` — prompt reference with `${var}` template variables
+
+`getComposer()` flow:
+1. Fetch from API → get segments array
+2. Interpolate static segments: replace `data-variable-ref` spans and `{{fieldPath}}` with input values
+3. Interpolate prompt segments: replace `${var}` in userMessage with input values (reuses existing `interpolate()`)
+4. Resolve model for each prompt via `modelResolver`
+5. Build `ComposerPrompt` objects with AI SDK shape: `{ model, system, prompt, temperature }`
+6. De-duplicate prompts by camelCased name (same prompt twice shares one object)
+7. Build `formatComposer()` closure: takes `Record<promptName, { text } | string>`, iterates document-order segments, splices in AI results, returns single string
+8. Build `compose()` closure: convenience method that takes a generate function (e.g. `generateText`), runs it for each prompt via `Promise.all`, maps results back to prompt names, calls `formatComposer()`, returns assembled string
+9. Return result with named prompt properties + `prompts` array + `formatComposer()` + `compose()`
+
+Key design decisions:
+- Variables are interpolated at `getComposer()` time (not at `formatComposer()` time)
+- `compose(generateText)` is the simple path — runs all prompts in parallel and assembles the output
+- `formatComposer()` is the manual path — accepts both `{ text: string }` (from generateText) and raw strings
+- Prompt names are camelCased from CMS promptName (e.g. "Intro Prompt" → `introPrompt`)
+- Duplicate prompts share one result — `formatComposer()` reuses it at both document positions
+- The `prompts` array is ordered by first appearance in the document, de-duplicated
 
 ### Dependencies
 
@@ -233,4 +267,22 @@ The README is the public contract for npm consumers. Keep it in sync with the ac
 
 - `createPromptlyClient` (not `createPromptClient`)
 - `client.getPrompt()` (not `client.get()`)
+- `client.getComposer()` / `client.getComposers()`
+- `result.formatComposer()` (not `format()` — avoids collision with built-ins)
 - `PromptlyClient` (not `PromptClient`)
+
+### Composer touchpoints
+
+When modifying composer functionality, these files need to stay in sync:
+
+- `src/types.ts` — `ComposerResponse`, `ComposerResult`, `ComposerPrompt`, `ComposerVariableMap`, `ComposerPromptMap`, `PromptlyClient`
+- `src/client.ts` — `getComposer()`, `getComposers()`, `fetchComposer()`, `toCamelCase()`, `interpolateStaticSegment()`
+- `src/cli/generate.ts` — `fetchAllComposers()`, `extractComposerVariables()`, `extractComposerPromptNames()`, `generateTypeDeclaration()` composer block
+- `src/__tests__/composer.test.ts` — client tests
+- `src/__tests__/composer-codegen.test.ts` — codegen tests
+- `src/__tests__/type-checks.ts` — `ComposerVariableMap`/`ComposerPromptMap` augmentation
+- `docs/src/content/docs/guides/fetching-composers.mdx` — main guide
+- `docs/src/content/docs/reference/client-api.mdx` — API reference
+- `docs/src/content/docs/reference/types.mdx` — type reference
+- `docs/src/content/docs/api/endpoints.mdx` — REST endpoint docs
+- `README.md` — inline examples

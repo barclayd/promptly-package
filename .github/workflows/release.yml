@@ -39,6 +39,7 @@ jobs:
         env:
           TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
           TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
+          TEST_COMPOSER_ID: ${{ secrets.TEST_COMPOSER_ID }}
 
       - name: Set canary version
         run: |
@@ -92,6 +93,7 @@ jobs:
         env:
           TEST_PROMPT_API_KEY: ${{ secrets.TEST_PROMPT_API_KEY }}
           TEST_PROMPT_ID: ${{ secrets.TEST_PROMPT_ID }}
+          TEST_COMPOSER_ID: ${{ secrets.TEST_COMPOSER_ID }}
 
       - name: Create release PR or publish
         uses: changesets/action@v1

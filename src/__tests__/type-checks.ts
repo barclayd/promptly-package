@@ -3,7 +3,7 @@
 // NOT a runtime test file — bun test will not execute this.
 
 import type { LanguageModel } from 'ai';
-import type { PromptlyClient, PromptResult } from '../types.ts';
+import type { ComposerPrompt, PromptlyClient, PromptResult } from '../types.ts';
 
 // --- Type assertion helpers ---
 
@@ -22,6 +22,15 @@ declare module '../types.ts' {
       '1.0.0': { name: string };
       '2.0.0': { city: string; country: string };
     };
+  }
+  interface ComposerVariableMap {
+    'type-test-composer': {
+      latest: { text: string; targetLang: string };
+      '1.0.0': { text: string; targetLang: string };
+    };
+  }
+  interface ComposerPromptMap {
+    'type-test-composer': 'introPrompt' | 'reviewPrompt';
   }
 }
 
@@ -107,4 +116,45 @@ async () => {
   const latest = await client.getPrompt('type-test-prompt');
   // @ts-expect-error — latest has { city, country }, not { name }
   latest.userMessage({ name: 'Alice' });
+};
+
+// --- ComposerResult has correct model type ---
+
+type _ComposerPromptModel = Expect<
+  Equal<ComposerPrompt['model'], LanguageModel>
+>;
+
+// --- getComposer() without version → latest input ---
+
+async () => {
+  const result = await client.getComposer('type-test-composer', {
+    input: { text: 'hello', targetLang: 'French' },
+  });
+  type _HasComposerId = Expect<Equal<typeof result.composerId, string>>;
+  type _HasVersion = Expect<Equal<typeof result.version, string>>;
+
+  // formatComposer accepts keyed results
+  const _output: string = result.formatComposer({
+    introPrompt: { text: 'hello' },
+    reviewPrompt: 'world',
+  });
+};
+
+// --- getComposer() with unknown composerId → Record<string, string> fallback ---
+
+async () => {
+  const result = await client.getComposer('unknown-composer-id');
+  type _ComposerId = Expect<Equal<typeof result.composerId, string>>;
+};
+
+// --- getComposers() returns array ---
+
+async () => {
+  const results = await client.getComposers([
+    { composerId: 'type-test-composer' },
+    { composerId: 'other' },
+  ]);
+  // Each position in the tuple is a ComposerResult
+  type _First = Expect<Equal<(typeof results)[0]['composerId'], string>>;
+  type _Second = Expect<Equal<(typeof results)[1]['composerId'], string>>;
 };

@@ -119,6 +119,54 @@ const { userMessage, model, temperature, systemMessage } = await promptly.getPro
 });
 ```
 
+## Composers with AI SDK
+
+Composers return named prompts that are directly AI SDK compatible. Each prompt has `{ model, system, prompt, temperature }` — the exact shape `generateText()` and `streamText()` accept:
+
+```typescript
+const { introPrompt, reviewPrompt, formatComposer } =
+  await promptly.getComposer('article-builder', {
+    input: { topic: 'TypeScript', audience: 'developers' },
+  });
+
+// Spread directly into generateText()
+const [intro, review] = await Promise.all([
+  generateText(introPrompt),
+  generateText(reviewPrompt),
+]);
+
+// Assemble static HTML + AI text into a single string
+const article = formatComposer({
+  introPrompt: intro,
+  reviewPrompt: review,
+});
+```
+
+Override parameters on any prompt:
+
+```typescript
+await generateText({ ...introPrompt, maxTokens: 500, topP: 0.9 });
+```
+
+Use `streamText()` the same way — it returns synchronously and you can `await result.text` for the final output:
+
+```typescript
+import { streamText } from 'ai';
+
+const stream = streamText(introPrompt);
+
+for await (const chunk of stream.textStream) {
+  process.stdout.write(chunk);
+}
+
+// Or await the full text
+const fullText = await stream.text;
+```
+
+<Aside>
+  See [Fetching Composers](/guides/fetching-composers/) for the full guide including `formatComposer()` usage, streaming patterns, and batch fetching.
+</Aside>
+
 ## Next steps
 
 - Learn how [model resolution](/guides/model-resolution/) works

@@ -102,10 +102,35 @@ const { text } = await generateText({
 console.log(text);
 ```
 
+## Composers
+
+Composers let you orchestrate multiple prompts into a single output. Fetch a composer with `getComposer()`, run each prompt through an AI model, and stitch the results together with `formatComposer()`:
+
+```typescript title="src/composer-example.ts"
+import { createPromptlyClient } from '@promptlycms/prompts';
+import { generateText } from 'ai';
+
+const promptly = createPromptlyClient();
+
+const composer = await promptly.getComposer('my-composer', {
+  input: { text: 'Hello', targetLang: 'French' },
+});
+
+const { introPrompt, reviewPrompt, formatComposer } = composer;
+
+const output = formatComposer({
+  introPrompt: await generateText(introPrompt),
+  reviewPrompt: await generateText(reviewPrompt),
+});
+```
+
+Each named prompt on the composer result (like `introPrompt` and `reviewPrompt`) is a `ComposerPrompt` object with `model`, `system`, `prompt`, and `temperature` properties -- ready to spread directly into `generateText()` or `streamText()`. The `formatComposer()` function reassembles the final output from each prompt's result, interleaving static content segments in the correct order.
+
 ## Next steps
 
 - [Generate types](/getting-started/type-generation/) for autocomplete and type safety
 - Learn about [fetching prompts](/guides/fetching-prompts/) in detail
 - Explore the [AI SDK integration](/guides/ai-sdk-integration/) guide
+- See the [Client API reference](/reference/client-api/) for `getComposer()` and `getComposers()` details
 - Manage your prompts, models, and versions from the [Promptly CMS dashboard](https://promptlycms.com)
 - Need direct API access? See the [REST API reference](/api/overview/)
