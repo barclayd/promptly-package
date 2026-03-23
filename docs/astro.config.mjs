@@ -18,6 +18,7 @@ const replacePurpleTokens = (theme) => {
 
 export default defineConfig({
   site: 'https://docs.promptlycms.com',
+  devToolbar: { enabled: false },
   integrations: [
     starlight({
       expressiveCode: {
