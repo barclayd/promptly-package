@@ -1,11 +1,11 @@
 ---
 title: Fetching Composers
-description: Fetch composers with getComposer() and getComposers(), run prompts through the AI SDK, and assemble final output with formatComposer().
+description: Fetch composers with getComposer() and run all prompts in parallel with compose().
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-A composer is a document template that combines static HTML segments with prompt references. `getComposer()` fetches a composer, interpolates your variables, resolves AI models, and returns named prompts that you run through the [Vercel AI SDK](https://ai-sdk.dev/). Then `formatComposer()` stitches everything together into a single output string.
+A composer is a document template that combines static HTML segments with prompt references. `getComposer()` fetches a composer, interpolates your variables, and resolves AI models. Then `compose()` runs every prompt in parallel and assembles the final output — all in one line.
 
 ## Quick example
 
@@ -15,62 +15,40 @@ import { generateText } from 'ai';
 
 const promptly = createPromptlyClient();
 
-const composer = await promptly.getComposer('article-composer', {
+const { compose } = await promptly.getComposer('article-composer', {
   input: { topic: 'TypeScript', audience: 'developers' },
 });
 
 // One line — runs all prompts in parallel and assembles the output
-const output = await composer.compose(generateText);
+const output = await compose(generateText);
 ```
-
-`compose()` calls your generate function for each prompt, runs them in parallel via `Promise.all`, and assembles the static HTML + AI text into a single string.
 
 ## How it works
 
-1. **Fetch** - `getComposer()` calls the Promptly API and gets the composer's segment array
-2. **Interpolate** - Template variables (`${var}` in prompts, `{{var}}` in static HTML) are replaced with your `input` values
-3. **Resolve models** - Each prompt segment's model is resolved to an AI SDK `LanguageModel`
-4. **Return named prompts** - Each prompt is available as a camelCased property with an AI SDK compatible shape
-5. **You run the AI calls** - Pass each prompt to `generateText()` or `streamText()`
-6. **Assemble** - `formatComposer()` interleaves static content with your AI results in document order
+1. **Fetch** — `getComposer()` calls the Promptly API and gets the composer's segment array
+2. **Interpolate** — Template variables (`${var}` in prompts, `{{var}}` in static HTML) are replaced with your `input` values
+3. **Resolve models** — Each prompt segment's model is resolved to an AI SDK `LanguageModel`
+4. **Compose** — `compose()` passes each prompt to your generate function, runs them in parallel via `Promise.all`, and assembles the static HTML + AI text into a single string
 
-## `compose()` — the simple path
+## Per-prompt overrides
 
-The `compose()` method handles the entire flow: it runs your generate function for each prompt in parallel and assembles the result:
+Pass a wrapper function to customise parameters for every prompt:
 
 ```typescript
-const output = await composer.compose(generateText);
-```
-
-### With per-prompt overrides
-
-Pass a wrapper function to customise parameters:
-
-```typescript
-const output = await composer.compose((prompt) =>
+const output = await compose((prompt) =>
   generateText({ ...prompt, maxTokens: 500 })
 );
 ```
 
-### When you need more control
+The `prompt` argument has the shape `{ model, system, prompt, temperature, promptId, promptName }`, so you can spread it and override individual fields.
 
-For advanced use cases (different settings per prompt, streaming, structured output), use the manual flow with named prompts and `formatComposer()` described in the sections below.
-
-## Single composer
-
-Use `getComposer()` to fetch a composer by ID:
+## Accessing metadata
 
 ```typescript
 const composer = await promptly.getComposer('my-composer', {
   input: { text: 'Hello world', targetLang: 'French' },
 });
-```
 
-The `input` object provides template variables that are interpolated into both static HTML segments and prompt user messages at fetch time.
-
-### Accessing metadata
-
-```typescript
 composer.composerId;   // 'my-composer'
 composer.composerName; // 'My Composer'
 composer.version;      // '1.0.0'
@@ -78,252 +56,12 @@ composer.config;       // { schema, inputData, inputDataRootName }
 composer.segments;     // raw segment array from the API
 ```
 
-## Named prompt access
-
-Each prompt segment in the composer is exposed as a top-level property, camelCased from the CMS prompt name (e.g. "Intro Prompt" becomes `introPrompt`). Every named prompt has an AI SDK compatible shape:
-
-```typescript
-const { introPrompt, reviewPrompt } = composer;
-
-introPrompt.model;       // LanguageModel (auto-resolved from CMS config)
-introPrompt.system;      // 'You are a helpful assistant...' | undefined
-introPrompt.prompt;      // 'Write an intro for Dan.' (variables already interpolated)
-introPrompt.temperature; // 0.7
-introPrompt.promptId;    // 'prompt-a'
-introPrompt.promptName;  // 'Intro Prompt'
-```
-
-The `{ model, system, prompt, temperature }` shape matches exactly what `generateText()` and `streamText()` accept, so you can spread directly:
-
-```typescript
-const result = await generateText(introPrompt);
-```
-
-### The `prompts` array
-
-All unique prompts are also available as an ordered array (document order, de-duplicated):
-
-```typescript
-for (const prompt of composer.prompts) {
-  console.log(prompt.promptName, prompt.promptId);
-}
-```
-
-<Aside type="tip">
-  If the same prompt appears multiple times in a composer, it only appears once in the `prompts` array and once as a named property.
-</Aside>
-
-## Using with `generateText()`
-
-The most common pattern: fetch a composer, generate text for each prompt, then assemble:
-
-```typescript
-import { createPromptlyClient } from '@promptlycms/prompts';
-import { generateText } from 'ai';
-
-const promptly = createPromptlyClient();
-
-const { introPrompt, summaryPrompt, formatComposer } =
-  await promptly.getComposer('report-builder', {
-    input: { companyName: 'Acme Corp', quarter: 'Q1 2025' },
-  });
-
-// Run prompts in parallel for best performance
-const [introResult, summaryResult] = await Promise.all([
-  generateText(introPrompt),
-  generateText(summaryPrompt),
-]);
-
-const report = formatComposer({
-  introPrompt: introResult,
-  summaryPrompt: summaryResult,
-});
-```
-
-`generateText()` returns an object with a `text` property. `formatComposer()` accepts either the full result object (extracts `.text` automatically) or a raw string.
-
-### Overriding AI SDK parameters
-
-Spread the prompt and override individual parameters:
-
-```typescript
-const result = await generateText({
-  ...introPrompt,
-  maxTokens: 500,
-  topP: 0.9,
-});
-```
-
-This works because the spread gives `generateText()` the `model`, `system`, `prompt`, and `temperature` fields, and your overrides take precedence for anything you add.
-
-### Provider-specific options
-
-```typescript
-const result = await generateText({
-  ...introPrompt,
-  providerOptions: {
-    anthropic: { cacheControl: { type: 'ephemeral' } },
-  },
-});
-```
-
-## Using with `streamText()`
-
-For streaming responses, use `streamText()` instead of `generateText()`. Since `streamText()` accepts the same parameters, the composer prompts spread in the same way:
-
-```typescript
-import { streamText } from 'ai';
-
-const { introPrompt, formatComposer } = await promptly.getComposer(
-  'my-composer',
-  { input: { topic: 'AI Safety' } },
-);
-
-const stream = streamText(introPrompt);
-
-// Stream chunks to the console as they arrive
-for await (const chunk of stream.textStream) {
-  process.stdout.write(chunk);
-}
-
-// Await the full text for formatComposer
-const output = formatComposer({
-  introPrompt: await stream.text,
-});
-```
-
-<Aside>
-  `streamText()` returns synchronously (not a Promise). Access `stream.textStream` for incremental chunks, or `await stream.text` to get the complete text once streaming finishes.
-</Aside>
-
-### Streaming all prompts
-
-```typescript
-const { introPrompt, reviewPrompt, formatComposer } =
-  await promptly.getComposer('my-composer', {
-    input: { topic: 'TypeScript' },
-  });
-
-// Start all streams (streamText returns synchronously)
-const introStream = streamText(introPrompt);
-const reviewStream = streamText(reviewPrompt);
-
-// Await the final text from each stream in parallel
-const [introText, reviewText] = await Promise.all([
-  introStream.text,
-  reviewStream.text,
-]);
-
-const output = formatComposer({
-  introPrompt: introText,
-  reviewPrompt: reviewText,
-});
-```
-
-### Returning a streaming HTTP response
-
-In a server context, use `toTextStreamResponse()` to stream directly to the client:
-
-```typescript
-// Stream a single prompt as an HTTP response
-const { introPrompt } = await promptly.getComposer('my-composer', {
-  input: { topic: 'AI' },
-});
-
-const stream = streamText(introPrompt);
-return stream.toTextStreamResponse();
-```
-
-## Using with structured output
-
-If a prompt in your composer needs structured output, use `generateText()` with the `Output` helper (AI SDK 6 pattern):
-
-```typescript
-import { generateText, Output } from 'ai';
-import { z } from 'zod';
-
-const { analysisPrompt, formatComposer } = await promptly.getComposer(
-  'my-composer',
-  { input: { data: reportData } },
-);
-
-const result = await generateText({
-  ...analysisPrompt,
-  output: Output.object({
-    schema: z.object({
-      summary: z.string(),
-      score: z.number().min(0).max(100),
-    }),
-  }),
-});
-
-// Convert structured output to string for formatComposer
-const { summary, score } = result.output;
-const output = formatComposer({
-  analysisPrompt: `Summary: ${summary}\nScore: ${score}/100`,
-});
-```
-
-<Aside type="tip">
-  In AI SDK 6, `generateObject()` is deprecated. Use `generateText()` with `Output.object()`, `Output.array()`, or `Output.choice()` instead.
-</Aside>
-
-## `formatComposer()` in depth
-
-`formatComposer()` takes an object keyed by prompt name and returns a single string with static HTML and AI text interleaved in the document order defined in the CMS.
-
-### Accepted input formats
-
-```typescript
-// Full generateText() result objects (extracts .text)
-formatComposer({
-  introPrompt: await generateText(introPrompt),
-  reviewPrompt: await generateText(reviewPrompt),
-});
-
-// Raw strings
-formatComposer({
-  introPrompt: 'Manually written intro.',
-  reviewPrompt: 'Manually written review.',
-});
-
-// Mix of both
-formatComposer({
-  introPrompt: await generateText(introPrompt),
-  reviewPrompt: 'Static fallback text.',
-});
-```
-
-### Duplicate prompt handling
-
-When the same prompt appears multiple times in a composer's segments, you only provide the result once. `formatComposer()` reuses it at every position:
-
-```typescript
-// "Intro Prompt" appears at positions 1 and 4 in the document
-const output = formatComposer({
-  introPrompt: await generateText(introPrompt),
-});
-// The same generated text appears at both positions
-```
-
-### Missing results
-
-If you omit a prompt key, `formatComposer()` skips those positions gracefully:
-
-```typescript
-// Only provide intro, skip review
-const output = formatComposer({
-  introPrompt: await generateText(introPrompt),
-});
-// Static segments still render; reviewPrompt positions are omitted
-```
-
 ## Version pinning
 
 By default, `getComposer()` fetches the latest published version. Pin to a specific version:
 
 ```typescript
-const composer = await promptly.getComposer('my-composer', {
+const { compose } = await promptly.getComposer('my-composer', {
   version: '2.0.0',
   input: { text: 'Hello world' },
 });
@@ -342,13 +80,14 @@ const [emailComposer, reportComposer] = await promptly.getComposers([
   { composerId: 'email-composer', input: { name: 'Alice' } },
   { composerId: 'report-composer', version: '2.0.0', input: { quarter: 'Q1' } },
 ]);
+
+const emailOutput = await emailComposer.compose(generateText);
+const reportOutput = await reportComposer.compose(generateText);
 ```
 
-Each result has its own named prompts and `formatComposer()` function.
+## Real-world example
 
-## Complete end-to-end example
-
-Here is a full example: a Next.js API route that fetches a composer, generates text for each prompt in parallel, and returns the assembled document:
+A Next.js API route that fetches a composer and returns the assembled document:
 
 ```typescript
 // app/api/generate-report/route.ts
@@ -358,25 +97,13 @@ import { generateText } from 'ai';
 const promptly = createPromptlyClient();
 
 export const POST = async (req: Request) => {
-  const { companyName, quarter, metrics } = await req.json();
+  const { companyName, quarter } = await req.json();
 
-  const { introPrompt, analysisPrompt, conclusionPrompt, formatComposer } =
-    await promptly.getComposer('quarterly-report', {
-      input: { companyName, quarter, metrics: JSON.stringify(metrics) },
-    });
-
-  // Run all prompts in parallel
-  const [intro, analysis, conclusion] = await Promise.all([
-    generateText({ ...introPrompt, maxTokens: 300 }),
-    generateText({ ...analysisPrompt, maxTokens: 1000 }),
-    generateText({ ...conclusionPrompt, maxTokens: 200 }),
-  ]);
-
-  const report = formatComposer({
-    introPrompt: intro,
-    analysisPrompt: analysis,
-    conclusionPrompt: conclusion,
+  const { compose } = await promptly.getComposer('quarterly-report', {
+    input: { companyName, quarter },
   });
+
+  const report = await compose(generateText);
 
   return new Response(report, {
     headers: { 'Content-Type': 'text/html' },
@@ -386,17 +113,12 @@ export const POST = async (req: Request) => {
 
 ## Type generation
 
-If you have run [codegen](/getting-started/type-generation/), the `input` object and named prompt properties are fully typed:
-
-- `input` is narrowed to the exact variables defined in the CMS
-- Named prompt properties (e.g. `introPrompt`, `reviewPrompt`) have autocomplete
-- `formatComposer()` requires the correct prompt name keys
-
-Without codegen, inputs and prompt names fall back to `Record<string, string>` and `string` respectively.
+If you have run [codegen](/getting-started/type-generation/), the `input` object is fully typed to the exact variables defined in the CMS. Without codegen, inputs fall back to `Record<string, string>`.
 
 ## Next steps
 
-- Learn about [AI SDK integration](/guides/ai-sdk-integration/) patterns for prompts
-- Explore [model resolution](/guides/model-resolution/) and custom resolvers
+- Need per-prompt control, streaming, or structured output? See [Advanced Composer Patterns](/guides/advanced-composer-patterns/)
+- Explore [AI SDK integration](/guides/ai-sdk-integration/) patterns for prompts
+- Learn about [model resolution](/guides/model-resolution/) and custom resolvers
 - Handle [errors](/guides/error-handling/) from the API
 - Create and version your composers in the [Promptly CMS](https://promptlycms.com)

@@ -68,16 +68,30 @@ export default defineConfig({
           label: 'Guides',
           items: [
             {
-              label: 'Fetching Prompts',
-              slug: 'guides/fetching-prompts',
+              label: 'Prompts',
+              items: [
+                {
+                  label: 'Fetching Prompts',
+                  slug: 'guides/fetching-prompts',
+                },
+                {
+                  label: 'AI SDK Integration',
+                  slug: 'guides/ai-sdk-integration',
+                },
+              ],
             },
             {
-              label: 'Fetching Composers',
-              slug: 'guides/fetching-composers',
-            },
-            {
-              label: 'AI SDK Integration',
-              slug: 'guides/ai-sdk-integration',
+              label: 'Composers',
+              items: [
+                {
+                  label: 'Fetching Composers',
+                  slug: 'guides/fetching-composers',
+                },
+                {
+                  label: 'Advanced Composer Patterns',
+                  slug: 'guides/advanced-composer-patterns',
+                },
+              ],
             },
             { label: 'Model Resolution', slug: 'guides/model-resolution' },
             {

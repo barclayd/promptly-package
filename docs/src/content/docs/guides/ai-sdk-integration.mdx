@@ -121,50 +121,26 @@ const { userMessage, model, temperature, systemMessage } = await promptly.getPro
 
 ## Composers with AI SDK
 
-Composers return named prompts that are directly AI SDK compatible. Each prompt has `{ model, system, prompt, temperature }` — the exact shape `generateText()` and `streamText()` accept:
+The `compose()` method runs all prompts in parallel and assembles the output in one line:
 
 ```typescript
-const { introPrompt, reviewPrompt, formatComposer } =
-  await promptly.getComposer('article-builder', {
-    input: { topic: 'TypeScript', audience: 'developers' },
-  });
-
-// Spread directly into generateText()
-const [intro, review] = await Promise.all([
-  generateText(introPrompt),
-  generateText(reviewPrompt),
-]);
-
-// Assemble static HTML + AI text into a single string
-const article = formatComposer({
-  introPrompt: intro,
-  reviewPrompt: review,
+const { compose } = await promptly.getComposer('article-builder', {
+  input: { topic: 'TypeScript', audience: 'developers' },
 });
+
+const article = await compose(generateText);
 ```
 
-Override parameters on any prompt:
+Override parameters for every prompt via a wrapper:
 
 ```typescript
-await generateText({ ...introPrompt, maxTokens: 500, topP: 0.9 });
-```
-
-Use `streamText()` the same way — it returns synchronously and you can `await result.text` for the final output:
-
-```typescript
-import { streamText } from 'ai';
-
-const stream = streamText(introPrompt);
-
-for await (const chunk of stream.textStream) {
-  process.stdout.write(chunk);
-}
-
-// Or await the full text
-const fullText = await stream.text;
+const article = await compose((prompt) =>
+  generateText({ ...prompt, maxTokens: 500 })
+);
 ```
 
 <Aside>
-  See [Fetching Composers](/guides/fetching-composers/) for the full guide including `formatComposer()` usage, streaming patterns, and batch fetching.
+  See [Fetching Composers](/guides/fetching-composers/) for the full guide. For per-prompt control, streaming, and structured output, see [Advanced Composer Patterns](/guides/advanced-composer-patterns/).
 </Aside>
 
 ## Next steps
