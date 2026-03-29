@@ -19,7 +19,8 @@ npm install @promptlycms/prompts
 Peer dependencies:
 
 ```bash
-npm install zod ai typescript
+npm install zod ai
+npm install --save-dev typescript
 ```
 
 You'll also need at least one AI provider SDK for model resolution:

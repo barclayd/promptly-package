@@ -32,27 +32,31 @@ import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
 ## Peer dependencies
 
-The SDK requires [Zod](https://zod.dev) v4, the [Vercel AI SDK](https://sdk.vercel.ai), and TypeScript 5+:
+The SDK requires [Zod](https://zod.dev) v4, the [Vercel AI SDK](https://sdk.vercel.ai), and TypeScript 5+. Install `typescript` as a dev dependency:
 
 <Tabs>
   <TabItem label="bun">
     ```bash
-    bun add zod ai typescript
+    bun add zod ai
+    bun add -D typescript
     ```
   </TabItem>
   <TabItem label="npm">
     ```bash
-    npm install zod ai typescript
+    npm install zod ai
+    npm install --save-dev typescript
     ```
   </TabItem>
   <TabItem label="yarn">
     ```bash
-    yarn add zod ai typescript
+    yarn add zod ai
+    yarn add -D typescript
     ```
   </TabItem>
   <TabItem label="pnpm">
     ```bash
-    pnpm add zod ai typescript
+    pnpm add zod ai
+    pnpm add -D typescript
     ```
   </TabItem>
 </Tabs>
@@ -134,7 +138,7 @@ The SDK supports all providers supported by the [Vercel AI SDK](https://ai-sdk.d
 |---------|-----------------|
 | `zod` | `^4.0.0` |
 | `ai` | `^4.0 \|\| ^5.0 \|\| ^6.0` |
-| `typescript` | `^5` |
+| `typescript` | `^5.0.0 \|\| ^6.0.0` |
 | `@ai-sdk/anthropic` | `^3.0` |
 | `@ai-sdk/openai` | `^3.0` |
 | `@ai-sdk/google` | `^3.0` |
