@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.4.0
+
+### Minor Changes
+
+- [#17](https://github.com/barclayd/promptly-package/pull/17) [`54c97af`](https://github.com/barclayd/promptly-package/commit/54c97afb2ff629428fcaba75289bb7e25e980033) Thanks [@barclayd](https://github.com/barclayd)! - Generate accurate TypeScript types from schema fields in codegen output. Variables with non-string types (e.g. `number`, `boolean`, `string[]`) are now correctly typed in `promptly-env.d.ts` instead of always being `string`. Also widens the `typescript` peer dependency to support both v5 and v6.
+
 ## 0.3.0
 
 ### Minor Changes
