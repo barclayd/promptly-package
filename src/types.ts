@@ -97,19 +97,19 @@ type VariablesFor<
 > = Id extends keyof PromptVariableMap
   ? Ver extends keyof PromptVariableMap[Id]
     ? PromptVariableMap[Id][Ver]
-    : Record<string, string>
-  : Record<string, string>;
+    : Record<string, unknown>
+  : Record<string, unknown>;
 
 // Generic over variable shape
 export type PromptMessage<
-  V extends Record<string, string> = Record<string, string>,
+  V extends Record<string, unknown> = Record<string, unknown>,
 > = {
   (variables: V): string;
   toString(): string;
 };
 
 export type PromptResult<
-  V extends Record<string, string> = Record<string, string>,
+  V extends Record<string, unknown> = Record<string, unknown>,
 > = Omit<PromptResponse, 'userMessage'> & {
   userMessage: PromptMessage<V>;
   temperature: number;
@@ -193,8 +193,8 @@ export type ComposerInputFor<
 > = Id extends keyof ComposerVariableMap
   ? Ver extends keyof ComposerVariableMap[Id]
     ? ComposerVariableMap[Id][Ver]
-    : Record<string, string>
-  : Record<string, string>;
+    : Record<string, unknown>
+  : Record<string, unknown>;
 
 // Resolves prompt names for a composer ID from ComposerPromptMap
 export type ComposerPromptNamesFor<Id extends string> =
@@ -245,7 +245,7 @@ export type GetComposerOptions<
 
 export type ComposerRequest = {
   composerId: string;
-  input?: Record<string, string>;
+  input?: Record<string, unknown>;
   version?: string;
 };
 

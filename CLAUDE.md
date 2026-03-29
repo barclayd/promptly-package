@@ -186,7 +186,7 @@ Key design decisions:
 ### Dependencies
 
 - **Runtime:** citty
-- **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5
+- **Peer:** zod ^4.0.0, ai ^4.0 || ^5.0 || ^6.0, typescript ^5 || ^6
 - **Dev:** @biomejs/biome, @changesets/cli, @changesets/changelog-github, @types/bun, @typescript/native-preview, tsup
 
 ### Model resolution

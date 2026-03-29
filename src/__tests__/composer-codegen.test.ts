@@ -4,7 +4,11 @@ import {
   extractComposerVariables,
   generateTypeDeclaration,
 } from '../cli/generate.ts';
-import type { ComposerResponse, PromptResponse } from '../types.ts';
+import type {
+  ComposerResponse,
+  PromptResponse,
+  SchemaField,
+} from '../types.ts';
 
 const mockComposer = (
   overrides?: Partial<ComposerResponse>,
@@ -220,4 +224,41 @@ test('generateTypeDeclaration: handles composer with never prompt map', () => {
     [mockComposer({ segments: [{ type: 'static', content: '<p>Hi</p>' }] })],
   );
   expect(output).toContain("'comp-test': never;");
+});
+
+test('generateTypeDeclaration: uses schema types for composer variables', () => {
+  const schema: SchemaField[] = [
+    { id: 'topic', name: 'topic', type: 'string', validations: [], params: {} },
+    { id: 'name', name: 'name', type: 'string', validations: [], params: {} },
+    {
+      id: 'count',
+      name: 'count',
+      type: 'number',
+      validations: [],
+      params: {},
+    },
+  ];
+  const output = generateTypeDeclaration(
+    [],
+    [
+      mockComposer({
+        config: { schema, inputData: null, inputDataRootName: null },
+        segments: [
+          {
+            type: 'prompt',
+            promptId: 'p1',
+            promptName: 'Intro',
+            version: '1.0.0',
+            systemMessage: null,
+            // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+            userMessage: '${topic} for ${name} x${count}',
+            config: {},
+          },
+        ],
+      }),
+    ],
+  );
+  expect(output).toContain('topic: string;');
+  expect(output).toContain('name: string;');
+  expect(output).toContain('count: number;');
 });
