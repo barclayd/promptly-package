@@ -4,8 +4,21 @@ import {
   extractTemplateVariables,
   generateTypeDeclaration,
   groupAndSortVersions,
+  schemaFieldToTsType,
 } from '../cli/generate.ts';
-import type { PromptResponse } from '../types.ts';
+import type { PromptResponse, SchemaField } from '../types.ts';
+
+const field = (
+  name: string,
+  type: string,
+  params: SchemaField['params'] = {},
+): SchemaField => ({
+  id: name,
+  name,
+  type,
+  validations: [],
+  params,
+});
 
 const makePrompt = (
   overrides: Partial<PromptResponse> = {},
@@ -303,4 +316,105 @@ test('generateTypeDeclaration: creates intersection for different variable group
   expect(result).toContain("'2.0.0'");
   expect(result).toContain("'1.1.0'");
   expect(result).toContain("'1.0.0'");
+});
+
+// --- schemaFieldToTsType ---
+
+test('schemaFieldToTsType: returns string for undefined field', () => {
+  expect(schemaFieldToTsType(undefined)).toBe('string');
+});
+
+test('schemaFieldToTsType: returns string for string field', () => {
+  expect(schemaFieldToTsType(field('x', 'string'))).toBe('string');
+});
+
+test('schemaFieldToTsType: returns number for number field', () => {
+  expect(schemaFieldToTsType(field('x', 'number'))).toBe('number');
+});
+
+test('schemaFieldToTsType: returns boolean for boolean field', () => {
+  expect(schemaFieldToTsType(field('x', 'boolean'))).toBe('boolean');
+});
+
+test('schemaFieldToTsType: returns string[] for array of strings', () => {
+  expect(
+    schemaFieldToTsType(field('x', 'array', { elementType: 'string' })),
+  ).toBe('string[]');
+});
+
+test('schemaFieldToTsType: returns number[] for array of numbers', () => {
+  expect(
+    schemaFieldToTsType(field('x', 'array', { elementType: 'number' })),
+  ).toBe('number[]');
+});
+
+test('schemaFieldToTsType: returns string[] for array with no elementType', () => {
+  expect(schemaFieldToTsType(field('x', 'array'))).toBe('string[]');
+});
+
+test('schemaFieldToTsType: returns enum union for enum field', () => {
+  expect(
+    schemaFieldToTsType(
+      field('x', 'enum', { enumValues: ['red', 'green', 'blue'] }),
+    ),
+  ).toBe("'red' | 'green' | 'blue'");
+});
+
+test('schemaFieldToTsType: returns Record for object field', () => {
+  expect(schemaFieldToTsType(field('x', 'object'))).toBe(
+    'Record<string, unknown>',
+  );
+});
+
+test('schemaFieldToTsType: returns string for date field', () => {
+  expect(schemaFieldToTsType(field('x', 'date'))).toBe('string');
+});
+
+// --- generateTypeDeclaration with schema types ---
+
+test('generateTypeDeclaration: uses number type from schema', () => {
+  const prompts = [
+    makePrompt({
+      promptId: 'typed-prompt',
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      userMessage: '${name} moves in ${daysUntilMove} days with ${items}',
+      config: {
+        model: 'claude-haiku-4.5',
+        temperature: 0.7,
+        schema: [
+          field('name', 'string'),
+          field('daysUntilMove', 'number'),
+          field('items', 'array', { elementType: 'string' }),
+        ],
+        inputData: null,
+        inputDataRootName: null,
+      },
+    }),
+  ];
+  const result = generateTypeDeclaration(prompts);
+
+  expect(result).toContain('name: string;');
+  expect(result).toContain('daysUntilMove: number;');
+  expect(result).toContain('items: string[];');
+});
+
+test('generateTypeDeclaration: falls back to string for variables not in schema', () => {
+  const prompts = [
+    makePrompt({
+      promptId: 'partial-schema',
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      userMessage: '${known} and ${unknown}',
+      config: {
+        model: 'claude-haiku-4.5',
+        temperature: 0.7,
+        schema: [field('known', 'number')],
+        inputData: null,
+        inputDataRootName: null,
+      },
+    }),
+  ];
+  const result = generateTypeDeclaration(prompts);
+
+  expect(result).toContain('known: number;');
+  expect(result).toContain('unknown: string;');
 });

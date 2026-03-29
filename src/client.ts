@@ -100,17 +100,17 @@ export const resolveModel = async (
 
 export const interpolate = (
   template: string,
-  variables: Record<string, string>,
+  variables: Record<string, unknown>,
 ): string => {
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
-    result = result.replaceAll(`\${${key}}`, value);
+    result = result.replaceAll(`\${${key}}`, String(value));
   }
   return result;
 };
 
 const createPromptMessage = (template: string): PromptMessage => {
-  const fn = (variables: Record<string, string>): string =>
+  const fn = (variables: Record<string, unknown>): string =>
     interpolate(template, variables);
   fn.toString = () => template;
   return fn as PromptMessage;
@@ -166,24 +166,21 @@ const MUSTACHE_REGEX = /\{\{(\w[\w.]*)\}\}/g;
 
 export const interpolateStaticSegment = (
   content: string,
-  input: Record<string, string>,
+  input: Record<string, unknown>,
 ): string => {
   let result = content;
 
   // Replace <span data-variable-ref data-field-path="X"></span> (both attribute orderings)
-  result = result.replace(
-    VARIABLE_REF_REGEX,
-    (_, fieldPath: string) => input[fieldPath] ?? '',
+  result = result.replace(VARIABLE_REF_REGEX, (_, fieldPath: string) =>
+    fieldPath in input ? String(input[fieldPath]) : '',
   );
-  result = result.replace(
-    VARIABLE_REF_ALT_REGEX,
-    (_, fieldPath: string) => input[fieldPath] ?? '',
+  result = result.replace(VARIABLE_REF_ALT_REGEX, (_, fieldPath: string) =>
+    fieldPath in input ? String(input[fieldPath]) : '',
   );
 
   // Replace {{fieldPath}} mustache patterns
-  result = result.replace(
-    MUSTACHE_REGEX,
-    (_, fieldPath: string) => input[fieldPath] ?? '',
+  result = result.replace(MUSTACHE_REGEX, (_, fieldPath: string) =>
+    fieldPath in input ? String(input[fieldPath]) : '',
   );
 
   return result;
@@ -275,7 +272,7 @@ export const createPromptlyClient = (
     options?: GetComposerOptions<T, V>,
   ) => {
     const response = await fetchComposer(composerId, options);
-    const input = (options?.input as Record<string, string> | undefined) ?? {};
+    const input = (options?.input as Record<string, unknown> | undefined) ?? {};
 
     // Track processed segments for format() and de-duplicated prompts
     const promptsByName = new Map<string, ComposerPrompt>();

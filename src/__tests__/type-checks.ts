@@ -73,12 +73,12 @@ async () => {
   await client.getPrompt('type-test-prompt', { version: '9.9.9' });
 };
 
-// --- getPrompt() with unknown promptId → Record<string, string> fallback (any version accepted) ---
+// --- getPrompt() with unknown promptId → Record<string, unknown> fallback (any version accepted) ---
 
 async () => {
   const result = await client.getPrompt('unknown-prompt-id');
   type Vars = Parameters<typeof result.userMessage>[0];
-  type _Check = Expect<Equal<Vars, Record<string, string>>>;
+  type _Check = Expect<Equal<Vars, Record<string, unknown>>>;
 };
 
 async () => {
@@ -86,7 +86,7 @@ async () => {
     version: '1.0.0',
   });
   type Vars = Parameters<typeof result.userMessage>[0];
-  type _Check = Expect<Equal<Vars, Record<string, string>>>;
+  type _Check = Expect<Equal<Vars, Record<string, unknown>>>;
 };
 
 // --- getPrompts() types each position correctly ---
@@ -140,7 +140,7 @@ async () => {
   });
 };
 
-// --- getComposer() with unknown composerId → Record<string, string> fallback ---
+// --- getComposer() with unknown composerId → Record<string, unknown> fallback ---
 
 async () => {
   const result = await client.getComposer('unknown-composer-id');

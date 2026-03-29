@@ -2,7 +2,11 @@ import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { detectProviderName, toCamelCase } from '../client.ts';
 import { createErrorFromResponse } from '../errors.ts';
-import type { ComposerResponse, PromptResponse } from '../types.ts';
+import type {
+  ComposerResponse,
+  PromptResponse,
+  SchemaField,
+} from '../types.ts';
 
 const PROVIDER_PACKAGES: Record<string, string> = {
   anthropic: '@ai-sdk/anthropic',
@@ -199,9 +203,51 @@ export const groupAndSortVersions = (
   return result;
 };
 
+const ELEMENT_TYPE_MAP: Record<string, string> = {
+  string: 'string',
+  number: 'number',
+  boolean: 'boolean',
+};
+
+export const schemaFieldToTsType = (field?: SchemaField): string => {
+  if (!field) {
+    return 'string';
+  }
+
+  switch (field.type) {
+    case 'number':
+    case 'boolean':
+      return field.type;
+    case 'array': {
+      const elementTs =
+        ELEMENT_TYPE_MAP[field.params.elementType ?? ''] ?? 'string';
+      return `${elementTs}[]`;
+    }
+    case 'enum': {
+      if (field.params.enumValues && field.params.enumValues.length > 0) {
+        return field.params.enumValues.map((v) => `'${v}'`).join(' | ');
+      }
+      return 'string';
+    }
+    case 'object':
+      return 'Record<string, unknown>';
+    default:
+      return 'string';
+  }
+};
+
+const buildSchemaMap = (schema: SchemaField[]): Map<string, SchemaField> => {
+  const map = new Map<string, SchemaField>();
+  for (const field of schema) {
+    map.set(field.name, field);
+  }
+  return map;
+};
+
 const generateMappedTypeBlock = (
   group: VersionGroup,
   indent: string,
+  schemaMap: Map<string, SchemaField> = new Map(),
 ): string[] => {
   const lines: string[] = [];
   const { versions, variables } = group;
@@ -213,7 +259,9 @@ const generateMappedTypeBlock = (
     } else {
       lines.push(`${indent}[V in ${vKey}]: {`);
       for (const v of variables) {
-        lines.push(`${indent}  ${v}: string;`);
+        lines.push(
+          `${indent}  ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
+        );
       }
       lines.push(`${indent}};`);
     }
@@ -234,7 +282,9 @@ const generateMappedTypeBlock = (
     }
     if (variables.length > 0) {
       for (const v of variables) {
-        lines.push(`${indent}  ${v}: string;`);
+        lines.push(
+          `${indent}  ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
+        );
       }
       lines.push(`${indent}};`);
     }
@@ -257,12 +307,13 @@ export const generateTypeDeclaration = (
 
   for (const prompt of prompts) {
     const groups = groupAndSortVersions(prompt);
+    const schemaMap = buildSchemaMap(prompt.config.schema);
 
     if (groups.length === 1) {
       const group = groups[0];
       if (group) {
         lines.push(`    '${prompt.promptId}': {`);
-        lines.push(...generateMappedTypeBlock(group, '      '));
+        lines.push(...generateMappedTypeBlock(group, '      ', schemaMap));
         lines.push('    };');
       }
     } else {
@@ -276,7 +327,7 @@ export const generateTypeDeclaration = (
         } else {
           lines.push('    } & {');
         }
-        lines.push(...generateMappedTypeBlock(group, '      '));
+        lines.push(...generateMappedTypeBlock(group, '      ', schemaMap));
       }
       lines.push('    };');
     }
@@ -289,6 +340,7 @@ export const generateTypeDeclaration = (
 
     for (const composer of composers) {
       const variables = extractComposerVariables(composer);
+      const schemaMap = buildSchemaMap(composer.config.schema);
       const versions: string[] = ["'latest'"];
       if (composer.publishedVersions) {
         for (const pv of composer.publishedVersions) {
@@ -305,7 +357,9 @@ export const generateTypeDeclaration = (
         } else {
           lines.push(`      [V in ${versions[0]}]: {`);
           for (const v of variables) {
-            lines.push(`        ${v}: string;`);
+            lines.push(
+              `        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
+            );
           }
           lines.push('      };');
         }
@@ -316,7 +370,9 @@ export const generateTypeDeclaration = (
         } else {
           lines.push(`      [V in ${versionUnion}]: {`);
           for (const v of variables) {
-            lines.push(`        ${v}: string;`);
+            lines.push(
+              `        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
+            );
           }
           lines.push('      };');
         }
