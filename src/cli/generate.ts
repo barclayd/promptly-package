@@ -29,6 +29,36 @@ export const extractTemplateVariables = (text: string): string[] => {
   return [...vars];
 };
 
+// Extracts variable names from static segment HTML content.
+// Mirrors the regex patterns in src/client.ts (VARIABLE_REF_REGEX, VARIABLE_REF_ALT_REGEX, MUSTACHE_REGEX).
+export const extractStaticSegmentVariables = (content: string): string[] => {
+  const vars = new Set<string>();
+
+  const varRefRegex =
+    /<span[^>]*\sdata-variable-ref(?:="[^"]*")?[^>]*\sdata-field-path="([^"]+)"[^>]*><\/span>/g;
+  const varRefAltRegex =
+    /<span[^>]*\sdata-field-path="([^"]+)"[^>]*\sdata-variable-ref(?:="[^"]*")?[^>]*><\/span>/g;
+  const mustacheRegex = /\{\{(\w[\w.]*)\}\}/g;
+
+  for (const match of content.matchAll(varRefRegex)) {
+    if (match[1]) {
+      vars.add(match[1]);
+    }
+  }
+  for (const match of content.matchAll(varRefAltRegex)) {
+    if (match[1]) {
+      vars.add(match[1]);
+    }
+  }
+  for (const match of content.matchAll(mustacheRegex)) {
+    if (match[1]) {
+      vars.add(match[1]);
+    }
+  }
+
+  return [...vars];
+};
+
 export const fetchAllPrompts = async (
   apiKey: string,
   baseUrl?: string,
@@ -74,14 +104,17 @@ export const extractComposerVariables = (
 ): string[] => {
   const vars = new Set<string>();
   for (const segment of composer.segments) {
-    if (segment.type !== 'prompt') {
-      continue;
-    }
-    if (!segment.userMessage) {
-      continue;
-    }
-    for (const v of extractTemplateVariables(segment.userMessage)) {
-      vars.add(v);
+    if (segment.type === 'prompt') {
+      if (!segment.userMessage) {
+        continue;
+      }
+      for (const v of extractTemplateVariables(segment.userMessage)) {
+        vars.add(v);
+      }
+    } else if (segment.type === 'static') {
+      for (const v of extractStaticSegmentVariables(segment.content)) {
+        vars.add(v);
+      }
     }
   }
   return [...vars];
