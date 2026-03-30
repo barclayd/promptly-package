@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.4.1
+
+### Patch Changes
+
+- [#19](https://github.com/barclayd/promptly-package/pull/19) [`375b6a8`](https://github.com/barclayd/promptly-package/commit/375b6a8e4941383133d4cd964a37fac60807ea5c) Thanks [@barclayd](https://github.com/barclayd)! - Include static segment variables in composer codegen output
+
 ## 0.4.0
 
 ### Minor Changes
