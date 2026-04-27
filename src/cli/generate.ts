@@ -115,6 +115,10 @@ export const extractComposerVariables = (
       for (const v of extractStaticSegmentVariables(segment.content)) {
         vars.add(v);
       }
+    } else if (segment.type === 'html_block') {
+      for (const v of extractStaticSegmentVariables(segment.html)) {
+        vars.add(v);
+      }
     }
   }
   return [...vars];

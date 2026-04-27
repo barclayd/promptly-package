@@ -341,6 +341,90 @@ test('getComposer() interpolates static segment variable refs with input', async
   expect(output).toBe('<p>Hello Dan!</p>');
 });
 
+// --- html_block segments ---
+
+const HTML_BLOCK_CONTENT =
+  '<!--[if mso]><table><tr><td><![endif]-->\n<div style="text-align: center;">\n  <a href="https://example.com">Click <span data-variable-ref data-field-path="name"></span></a>\n</div>\n<!--[if mso]></td></tr></table><![endif]-->';
+
+test('getComposer() preserves html_block segment in response.segments', async () => {
+  const htmlBlockResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      { type: 'static', content: '<p>Before</p>' },
+      { type: 'html_block', html: HTML_BLOCK_CONTENT },
+      { type: 'static', content: '<p>After</p>' },
+    ],
+  };
+  const { client } = setup(htmlBlockResponse);
+  const result = await client.getComposer('comp-123', { input: { name: 'X' } });
+
+  expect(result.segments).toHaveLength(3);
+  const block = result.segments[1];
+  expect(block?.type).toBe('html_block');
+  if (block?.type === 'html_block') {
+    expect(block.html).toBe(HTML_BLOCK_CONTENT);
+  }
+});
+
+test('getComposer() interpolates variable refs inside html_block via formatComposer', async () => {
+  const htmlBlockResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      {
+        type: 'html_block',
+        html: '<div><a href="https://example.com">Hi <span data-variable-ref data-field-path="name"></span></a></div>',
+      },
+    ],
+  };
+  const { client } = setup(htmlBlockResponse);
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan' },
+  });
+
+  const output = result.formatComposer({} as Record<string, string>);
+  expect(output).toBe('<div><a href="https://example.com">Hi Dan</a></div>');
+});
+
+test('getComposer() preserves MSO conditional comments byte-exactly inside html_block', async () => {
+  const htmlBlockResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [{ type: 'html_block', html: HTML_BLOCK_CONTENT }],
+  };
+  const { client } = setup(htmlBlockResponse);
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan' },
+  });
+
+  const output = result.formatComposer({} as Record<string, string>);
+  // MSO comments and structure preserved; only the variable ref is replaced.
+  expect(output).toContain('<!--[if mso]><table><tr><td><![endif]-->');
+  expect(output).toContain('<!--[if mso]></td></tr></table><![endif]-->');
+  expect(output).toContain('Click Dan');
+  expect(output).not.toContain('data-variable-ref');
+});
+
+test('getComposer() passes embedded prompt-refs through html_block as opaque HTML', async () => {
+  const htmlBlockResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      {
+        type: 'html_block',
+        html: '<div>Wrapper <span data-prompt-ref="" data-prompt-id="prompt-a" data-prompt-name="Intro Prompt"></span></div>',
+      },
+    ],
+  };
+  const { client } = setup(htmlBlockResponse);
+  const result = await client.getComposer('comp-123');
+
+  // Prompt-refs inside html_block are NOT extracted as named prompts.
+  expect(result.prompts).toHaveLength(0);
+
+  // The raw span passes through formatComposer untouched.
+  const output = result.formatComposer({} as Record<string, string>);
+  expect(output).toContain('data-prompt-ref');
+  expect(output).toContain('data-prompt-id="prompt-a"');
+});
+
 // --- formatComposer() ---
 
 test('formatComposer() assembles static and prompt results in document order', async () => {

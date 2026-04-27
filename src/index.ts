@@ -10,6 +10,7 @@ export type {
   ComposerConfig,
   ComposerFormatFn,
   ComposerGenerateFn,
+  ComposerHtmlBlockSegment,
   ComposerId,
   ComposerInputFor,
   ComposerPrompt,

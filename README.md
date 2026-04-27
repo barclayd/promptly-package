@@ -180,6 +180,24 @@ const [first, second] = await promptly.getComposers([
 ]);
 ```
 
+### HTML blocks
+
+Composers can contain raw HTML blocks (for vendor-specific markup like MSO conditional comments in transactional emails). These surface as a distinct `html_block` segment type:
+
+```typescript
+const composer = await promptly.getComposer('my-email-composer', {
+  input: { country: 'United Kingdom' },
+});
+
+for (const segment of composer.segments) {
+  if (segment.type === 'html_block') {
+    console.log(segment.html); // raw HTML, byte-exact
+  }
+}
+```
+
+Variable references inside an `html_block` (e.g. `<span data-variable-ref data-field-path="country">`) are interpolated normally during `formatComposer()` / `compose()`. Embedded prompt references inside an `html_block` are passed through opaquely — they aren't resolved as named prompts.
+
 ## Model auto-detection
 
 The SDK automatically resolves models configured in the CMS to the correct AI SDK provider based on the model name prefix:
