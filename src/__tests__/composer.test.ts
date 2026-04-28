@@ -341,6 +341,25 @@ test('getComposer() interpolates static segment variable refs with input', async
   expect(output).toBe('<p>Hello Dan!</p>');
 });
 
+test('getComposer() preserves empty paragraphs in static segments', async () => {
+  const emptyParagraphResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      {
+        type: 'static',
+        content: '<p>Before</p><p></p><p class="spacer"> </p><p>After</p>',
+      },
+    ],
+  };
+  const { client } = setup(emptyParagraphResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({} as Record<string, string>);
+  expect(output).toBe(
+    '<p>Before</p><p><br></p><p class="spacer"><br></p><p>After</p>',
+  );
+});
+
 // --- html_block segments ---
 
 const HTML_BLOCK_CONTENT =
@@ -425,6 +444,23 @@ test('getComposer() passes embedded prompt-refs through html_block as opaque HTM
   expect(output).toContain('data-prompt-id="prompt-a"');
 });
 
+test('getComposer() does not normalize empty paragraphs inside html_block', async () => {
+  const htmlBlockResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      {
+        type: 'html_block',
+        html: '<div><p></p><p>Raw block</p></div>',
+      },
+    ],
+  };
+  const { client } = setup(htmlBlockResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({} as Record<string, string>);
+  expect(output).toBe('<div><p></p><p>Raw block</p></div>');
+});
+
 // --- formatComposer() ---
 
 test('formatComposer() assembles static and prompt results in document order', async () => {
@@ -470,6 +506,38 @@ test('formatComposer() accepts { text: string } values', async () => {
 
   expect(output).toContain('Generated intro.');
   expect(output).toContain('Generated review.');
+});
+
+test('formatComposer() preserves prompt result line breaks as br tags', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const output = result.formatComposer({
+    introPrompt: { text: 'Intro line 1\nIntro line 2\n\nIntro line 4' },
+    reviewPrompt: 'Review line 1\r\nReview line 2\rReview line 3',
+  });
+
+  expect(output).toBe(
+    '<p>Hello</p>Intro line 1<br>Intro line 2<br><br>Intro line 4<p>---</p>Review line 1<br>Review line 2<br>Review line 3<p>End</p>',
+  );
+});
+
+test('formatComposer() accepts raw { html: string } values', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const output = result.formatComposer({
+    introPrompt: { html: '<strong>Raw<br>intro</strong>' },
+    reviewPrompt: { html: '<em>Raw\nreview</em>' },
+  });
+
+  expect(output).toBe(
+    '<p>Hello</p><strong>Raw<br>intro</strong><p>---</p><em>Raw\nreview</em><p>End</p>',
+  );
 });
 
 test('formatComposer() reuses same result for duplicate prompt positions', async () => {
@@ -564,6 +632,20 @@ test('compose() works with raw string return from generate', async () => {
   const output = await result.compose(mockGenerate);
 
   expect(output).toBe('<p>Hello</p>Raw text.<p>---</p>Raw text.<p>End</p>');
+});
+
+test('compose() preserves prompt result line breaks as br tags', async () => {
+  const { client } = setup();
+  const result = await client.getComposer('comp-123', {
+    input: { name: 'Dan', topic: 'AI' },
+  });
+
+  const mockGenerate = async () => ({ text: 'Line 1\nLine 2' });
+  const output = await result.compose(mockGenerate);
+
+  expect(output).toBe(
+    '<p>Hello</p>Line 1<br>Line 2<p>---</p>Line 1<br>Line 2<p>End</p>',
+  );
 });
 
 test('compose() runs prompts in parallel', async () => {

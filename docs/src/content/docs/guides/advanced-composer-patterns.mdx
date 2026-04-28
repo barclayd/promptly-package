@@ -229,12 +229,22 @@ formatComposer({
   reviewPrompt: 'Manually written review.',
 });
 
+// Trusted raw HTML
+formatComposer({
+  introPrompt: { html: '<p>Manually written<br>intro.</p>' },
+  reviewPrompt: { html: '<strong>Static fallback HTML.</strong>' },
+});
+
 // Mix of both
 formatComposer({
   introPrompt: await generateText(introPrompt),
   reviewPrompt: 'Static fallback text.',
 });
 ```
+
+String and `{ text }` values preserve newlines as `<br>` tags. Use `{ html }`
+when the prompt result already contains trusted HTML and should pass through
+unchanged.
 
 ### Duplicate prompt handling
 

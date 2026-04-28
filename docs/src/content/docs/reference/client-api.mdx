@@ -210,11 +210,11 @@ const output = await composer.compose((prompt) =>
 );
 ```
 
-`compose()` accepts any function matching `(prompt: ComposerPrompt) => Promise<{ text: string } | string>`.
+`compose()` accepts any function matching `(prompt: ComposerPrompt) => Promise<FormatInput>`. String and `{ text }` results preserve newlines as `<br>` tags. Return `{ html }` only when you want trusted HTML inserted unchanged.
 
 ### `formatComposer()` usage
 
-The `formatComposer()` function accepts a record mapping prompt names to results. Each value can be either a string or an object with a `text` property (matching the `generateText()` return shape):
+The `formatComposer()` function accepts a record mapping prompt names to results. Each value can be a string, an object with a `text` property (matching the `generateText()` return shape), or an object with an `html` property:
 
 ```typescript
 // Pass generateText() results directly
@@ -227,6 +227,12 @@ const output = formatComposer({
 const output = formatComposer({
   introPrompt: 'Hello, world!',
   reviewPrompt: 'Looks good.',
+});
+
+// Or pass trusted HTML without newline conversion
+const output = formatComposer({
+  introPrompt: { html: '<p>Hello<br>world</p>' },
+  reviewPrompt: { html: '<strong>Looks good.</strong>' },
 });
 ```
 
