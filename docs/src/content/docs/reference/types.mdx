@@ -20,7 +20,7 @@ type PromptlyClient = {
     entries: T,
   ) => Promise<GetPromptsResults<T>>;
 
-  getComposer: <T extends string, V extends ComposerVersion<T> | 'latest' = 'latest'>(
+  getComposer: <T extends ComposerId, V extends ComposerVersion<T> | 'latest' = 'latest'>(
     composerId: T,
     options?: GetComposerOptions<T, V>,
   ) => Promise<ComposerResult<ComposerPromptNamesFor<T>>>;
@@ -255,8 +255,8 @@ Used with `getComposers()` for batch fetching.
 
 ```typescript
 type ComposerRequest = {
-  composerId: string;
-  input?: Record<string, string>;
+  composerId: ComposerId;
+  input?: Record<string, unknown>;
   version?: string;
 };
 ```
@@ -267,7 +267,7 @@ Options for `getComposer()`.
 
 ```typescript
 type GetComposerOptions<
-  Id extends string = string,
+  Id extends string = ComposerId,
   V extends string = 'latest',
 > = {
   input?: ComposerInputFor<Id, V>;
@@ -356,10 +356,13 @@ interface ComposerPromptMap {}
 
 ### `ComposerId`
 
-Suggests known composer IDs while accepting any string.
+Accepts any string before codegen. Once generated composer types are present, narrows to the generated composer ID literals.
 
 ```typescript
-type ComposerId = keyof ComposerVariableMap | (string & {});
+type KnownComposerId = Extract<keyof ComposerVariableMap, string>;
+type ComposerId = [KnownComposerId] extends [never]
+  ? string
+  : KnownComposerId;
 ```
 
 ### `ComposerVersion<Id>`
@@ -375,7 +378,7 @@ type ComposerVersion<Id extends string> =
 
 ### `ComposerInputFor<Id, Ver>`
 
-Resolves the input variable shape for a composer ID and version. Falls back to `Record<string, string>` for unknown IDs or versions.
+Resolves the input variable shape for a composer ID and version. Falls back to `Record<string, unknown>` before codegen or for unknown helper type parameters.
 
 ```typescript
 type ComposerInputFor<
@@ -384,8 +387,8 @@ type ComposerInputFor<
 > = Id extends keyof ComposerVariableMap
   ? Ver extends keyof ComposerVariableMap[Id]
     ? ComposerVariableMap[Id][Ver]
-    : Record<string, string>
-  : Record<string, string>;
+    : Record<string, unknown>
+  : Record<string, unknown>;
 ```
 
 ### `ComposerPromptNamesFor<Id>`

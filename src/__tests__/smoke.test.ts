@@ -11,6 +11,7 @@ import {
   toCamelCase as toCamelCaseLocal,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
+import type { ComposerId } from '../types.ts';
 
 const API_KEY = process.env.TEST_PROMPT_API_KEY as string;
 const PROMPT_ID = process.env.TEST_PROMPT_ID as string;
@@ -23,7 +24,7 @@ const setupPrompt = () => ({
 
 const setupComposer = () => ({
   client: createPromptlyClient({ apiKey: API_KEY }),
-  composerId: COMPOSER_ID,
+  composerId: COMPOSER_ID as ComposerId,
 });
 
 // --- getPrompt ---
@@ -307,7 +308,7 @@ test('smoke: getComposer() throws PromptlyError for nonexistent composer', async
   const client = createPromptlyClient({ apiKey: API_KEY });
 
   try {
-    await client.getComposer('nonexistent-id-xxx');
+    await client.getComposer('nonexistent-id-xxx' as ComposerId);
     expect.unreachable('Expected PromptlyError to be thrown');
   } catch (error) {
     expect(error).toBeInstanceOf(PromptlyError);

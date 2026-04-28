@@ -185,8 +185,12 @@ export interface ComposerVariableMap {}
 // biome-ignore lint/suspicious/noEmptyInterface: declaration merging target populated by codegen
 export interface ComposerPromptMap {}
 
-// Suggests known composer IDs with autocomplete, accepts any string
-export type ComposerId = keyof ComposerVariableMap | (string & {});
+type KnownComposerId = Extract<keyof ComposerVariableMap, string>;
+
+// Accepts any string before codegen; narrows to generated composer IDs when present
+export type ComposerId = [KnownComposerId] extends [never]
+  ? string
+  : KnownComposerId;
 
 // Strict version type: only codegen-known versions for known composers
 export type ComposerVersion<Id extends string> =
@@ -242,7 +246,7 @@ export type ComposerResult<Names extends string = string> = {
 };
 
 export type GetComposerOptions<
-  Id extends string = string,
+  Id extends string = ComposerId,
   V extends string = 'latest',
 > = {
   input?: ComposerInputFor<Id, V>;
@@ -252,7 +256,7 @@ export type GetComposerOptions<
 // --- Composer batch types ---
 
 export type ComposerRequest = {
-  composerId: string;
+  composerId: ComposerId;
   input?: Record<string, unknown>;
   version?: string;
 };
@@ -306,7 +310,7 @@ export type PromptlyClient = {
   ) => Promise<GetPromptsResults<T>>;
 
   getComposer: <
-    T extends string,
+    T extends ComposerId,
     V extends ComposerVersion<T> | 'latest' = 'latest',
   >(
     composerId: T,

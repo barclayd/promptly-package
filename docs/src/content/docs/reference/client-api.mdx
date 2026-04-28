@@ -142,9 +142,9 @@ const composer = await promptly.getComposer('my-composer', {
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `composerId` | `ComposerId` | Yes | The composer ID to fetch. Autocompletes known IDs if codegen types are present. |
+| `composerId` | `ComposerId` | Yes | The composer ID to fetch. Narrows to generated composer IDs if codegen types are present. |
 | `options.version` | `string` | No | Specific version to fetch (default: latest) |
-| `options.input` | `Record<string, string>` | No | Input variables to interpolate into static segments and prompt user messages |
+| `options.input` | `Record<string, unknown>` | No | Input variables to interpolate into static segments and prompt user messages |
 
 ### Return type: `ComposerResult<Names>`
 
@@ -234,7 +234,7 @@ const output = formatComposer({
 
 ```typescript
 client.getComposer<
-  T extends string,             // Composer ID
+  T extends ComposerId,         // Composer ID
   V extends ComposerVersion<T>  // Version (default: 'latest')
 >(composerId: T, options?: GetComposerOptions<T, V>)
   => Promise<ComposerResult<ComposerPromptNamesFor<T>>>
@@ -265,8 +265,8 @@ Each `ComposerRequest`:
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `composerId` | `string` | Yes | The composer ID |
-| `input` | `Record<string, string>` | No | Input variables for interpolation |
+| `composerId` | `ComposerId` | Yes | The composer ID |
+| `input` | `Record<string, unknown>` | No | Input variables for interpolation |
 | `version` | `string` | No | Specific version (default: latest) |
 
 ### Return type
