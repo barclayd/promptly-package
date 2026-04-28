@@ -17,6 +17,20 @@ const API_KEY = process.env.TEST_PROMPT_API_KEY as string;
 const PROMPT_ID = process.env.TEST_PROMPT_ID as string;
 const COMPOSER_ID = process.env.TEST_COMPOSER_ID as string;
 
+const escapeTsStringLiteral = (value: string): string =>
+  value.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+
+const hasComposerPropertyKey = (
+  declaration: string,
+  composerId: string,
+): boolean => {
+  const escapedComposerId = escapeTsStringLiteral(composerId);
+  return (
+    declaration.includes(`    ${composerId}:`) ||
+    declaration.includes(`    '${escapedComposerId}':`)
+  );
+};
+
 const setupPrompt = () => ({
   client: createPromptlyClient({ apiKey: API_KEY }),
   promptId: PROMPT_ID,
@@ -338,9 +352,12 @@ test('smoke: fetchAllComposers() returns array of composers', async () => {
   expect(first.segments.length).toBeGreaterThan(0);
 
   for (const segment of first.segments) {
-    expect(['static', 'prompt']).toContain(segment.type);
+    expect(['static', 'prompt', 'html_block']).toContain(segment.type);
     if (segment.type === 'static') {
       expect(typeof segment.content).toBe('string');
+    }
+    if (segment.type === 'html_block') {
+      expect(typeof segment.html).toBe('string');
     }
     if (segment.type === 'prompt') {
       expect(typeof segment.promptId).toBe('string');
@@ -374,6 +391,6 @@ test('smoke: generateTypeDeclaration() includes composer types from real compose
   expect(declaration).toContain('interface ComposerPromptMap');
 
   for (const composer of composers) {
-    expect(declaration).toContain(`'${composer.composerId}'`);
+    expect(hasComposerPropertyKey(declaration, composer.composerId)).toBe(true);
   }
 });
