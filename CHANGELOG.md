@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.6.1
+
+### Patch Changes
+
+- [#26](https://github.com/barclayd/promptly-package/pull/26) [`af507c4`](https://github.com/barclayd/promptly-package/commit/af507c4d0ccba4a264ace20b66cefbbd99f0fecc) Thanks [@barclayd](https://github.com/barclayd)! - Preserve visible paragraph spacing when text prompt output is inserted into a standalone composer paragraph.
+
 ## 0.6.0
 
 ### Minor Changes
