@@ -152,7 +152,15 @@ export type ComposerPromptSegment = {
   config: Record<string, unknown>;
 };
 
-export type ComposerSegment = ComposerStaticSegment | ComposerPromptSegment;
+export type ComposerHtmlBlockSegment = {
+  type: 'html_block';
+  html: string;
+};
+
+export type ComposerSegment =
+  | ComposerStaticSegment
+  | ComposerPromptSegment
+  | ComposerHtmlBlockSegment;
 
 export type ComposerConfig = {
   schema: SchemaField[];

@@ -291,6 +291,14 @@ export const createPromptlyClient = (
         continue;
       }
 
+      if (segment.type === 'html_block') {
+        processedSegments.push({
+          type: 'static',
+          content: interpolateStaticSegment(segment.html, input),
+        });
+        continue;
+      }
+
       const camelName = toCamelCase(segment.promptName);
 
       if (!promptsByName.has(camelName)) {

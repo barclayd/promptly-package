@@ -152,6 +152,86 @@ test('extractComposerPromptNames: returns empty for static-only composer', () =>
   expect(names).toEqual([]);
 });
 
+// --- html_block segments ---
+
+test('extractComposerVariables: extracts variables from html_block segments', () => {
+  const vars = extractComposerVariables(
+    mockComposer({
+      segments: [
+        {
+          type: 'html_block',
+          html: '<div><a href="https://example.com">Hi <span data-variable-ref data-field-path="name"></span></a></div>',
+        },
+      ],
+    }),
+  );
+  expect(vars).toEqual(['name']);
+});
+
+test('extractComposerVariables: extracts mustache variables from html_block', () => {
+  const vars = extractComposerVariables(
+    mockComposer({
+      segments: [
+        {
+          type: 'html_block',
+          html: '<a href="https://example.com?country={{country}}">Click</a>',
+        },
+      ],
+    }),
+  );
+  expect(vars).toContain('country');
+});
+
+test('extractComposerVariables: deduplicates variables across html_block + static + prompt', () => {
+  const vars = extractComposerVariables(
+    mockComposer({
+      segments: [
+        {
+          type: 'static',
+          content:
+            '<p><span data-variable-ref data-field-path="name"></span></p>',
+        },
+        {
+          type: 'html_block',
+          html: '<div><span data-variable-ref data-field-path="name"></span></div>',
+        },
+        {
+          type: 'prompt',
+          promptId: 'p1',
+          promptName: 'P',
+          version: '1.0.0',
+          systemMessage: null,
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+          userMessage: 'Hello ${name}.',
+          config: {},
+        },
+      ],
+    }),
+  );
+  expect(vars.filter((v) => v === 'name')).toHaveLength(1);
+});
+
+test('extractComposerPromptNames: ignores prompt-refs embedded inside html_block', () => {
+  const names = extractComposerPromptNames(
+    mockComposer({
+      segments: [
+        {
+          type: 'html_block',
+          html: '<div><span data-prompt-ref data-prompt-id="p1" data-prompt-name="Embedded"></span></div>',
+        },
+      ],
+    }),
+  );
+  expect(names).toEqual([]);
+});
+
+test('extractStaticSegmentVariables: works on raw html_block content', () => {
+  const vars = extractStaticSegmentVariables(
+    '<div><span data-variable-ref data-field-path="email"></span></div>',
+  );
+  expect(vars).toEqual(['email']);
+});
+
 // --- generateTypeDeclaration with composers ---
 
 test('generateTypeDeclaration: includes ComposerVariableMap for composers', () => {
