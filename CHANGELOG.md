@@ -1,5 +1,15 @@
 # @promptlycms/prompts
 
+## 0.5.0
+
+### Minor Changes
+
+- [#21](https://github.com/barclayd/promptly-package/pull/21) [`8df0df3`](https://github.com/barclayd/promptly-package/commit/8df0df3892edfcd66c45a5eff1232a760a5888e9) Thanks [@barclayd](https://github.com/barclayd)! - Add `html_block` segment type for raw-HTML blocks authored in the Promptly composer. Variable references inside HTML blocks are interpolated normally; embedded prompt references are passed through opaquely. Codegen extracts variable names from html_block content.
+
+### Patch Changes
+
+- [#22](https://github.com/barclayd/promptly-package/pull/22) [`4678918`](https://github.com/barclayd/promptly-package/commit/46789180b6df6cbb5d083879e0bd421e4356396f) Thanks [@barclayd](https://github.com/barclayd)! - Narrow generated composer APIs to known composer IDs and emit valid identifier composer keys without quotes.
+
 ## 0.4.1
 
 ### Patch Changes
