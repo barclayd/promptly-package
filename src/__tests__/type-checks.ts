@@ -3,7 +3,12 @@
 // NOT a runtime test file — bun test will not execute this.
 
 import type { LanguageModel } from 'ai';
-import type { ComposerPrompt, PromptlyClient, PromptResult } from '../types.ts';
+import type {
+  ComposerId,
+  ComposerPrompt,
+  PromptlyClient,
+  PromptResult,
+} from '../types.ts';
 
 // --- Type assertion helpers ---
 
@@ -24,13 +29,30 @@ declare module '../types.ts' {
     };
   }
   interface ComposerVariableMap {
+    'comp-123': {
+      latest: Record<string, unknown>;
+      '1.0.0': Record<string, unknown>;
+      '2.0.0': Record<string, unknown>;
+    };
+    'comp-456': {
+      latest: Record<string, unknown>;
+      '1.0.0': Record<string, unknown>;
+      '2.0.0': Record<string, unknown>;
+    };
     'type-test-composer': {
       latest: { text: string; targetLang: string };
       '1.0.0': { text: string; targetLang: string };
     };
+    JPxlUpstuhXB5OwOtKPpj: {
+      latest: { topic: string };
+      '1.0.0': { topic: string };
+    };
   }
   interface ComposerPromptMap {
+    'comp-123': 'introPrompt' | 'reviewPrompt';
+    'comp-456': 'introPrompt' | 'reviewPrompt';
     'type-test-composer': 'introPrompt' | 'reviewPrompt';
+    JPxlUpstuhXB5OwOtKPpj: 'summaryPrompt';
   }
 }
 
@@ -124,6 +146,16 @@ type _ComposerPromptModel = Expect<
   Equal<ComposerPrompt['model'], LanguageModel>
 >;
 
+type _ComposerIdIncludesGenerated = Expect<
+  Equal<
+    Extract<ComposerId, 'type-test-composer' | 'JPxlUpstuhXB5OwOtKPpj'>,
+    'type-test-composer' | 'JPxlUpstuhXB5OwOtKPpj'
+  >
+>;
+type _ComposerIdRejectsUnknown = Expect<
+  Equal<Extract<'unknown-composer-id', ComposerId>, never>
+>;
+
 // --- getComposer() without version → latest input ---
 
 async () => {
@@ -140,11 +172,11 @@ async () => {
   });
 };
 
-// --- getComposer() with unknown composerId → Record<string, unknown> fallback ---
+// --- getComposer() with generated composer IDs only accepts known IDs ---
 
 async () => {
-  const result = await client.getComposer('unknown-composer-id');
-  type _ComposerId = Expect<Equal<typeof result.composerId, string>>;
+  // @ts-expect-error — composer IDs narrow to generated literals when codegen is present
+  await client.getComposer('unknown-composer-id');
 };
 
 // --- getComposers() returns array ---
@@ -152,9 +184,17 @@ async () => {
 async () => {
   const results = await client.getComposers([
     { composerId: 'type-test-composer' },
-    { composerId: 'other' },
+    { composerId: 'JPxlUpstuhXB5OwOtKPpj' },
   ]);
   // Each position in the tuple is a ComposerResult
   type _First = Expect<Equal<(typeof results)[0]['composerId'], string>>;
   type _Second = Expect<Equal<(typeof results)[1]['composerId'], string>>;
+};
+
+async () => {
+  await client.getComposers([
+    { composerId: 'type-test-composer' },
+    // @ts-expect-error — batch composer IDs also narrow to generated literals
+    { composerId: 'other' },
+  ]);
 };

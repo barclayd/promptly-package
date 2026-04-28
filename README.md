@@ -250,7 +250,7 @@ declare module '@promptlycms/prompts' {
 }
 ```
 
-With this file present, `getPrompt()` and `getPrompts()` return typed `userMessage` functions with autocomplete. `getComposer()` and `getComposers()` get typed `input` and named prompt properties. Unknown IDs fall back to `Record<string, string>`.
+With this file present, `getPrompt()` and `getPrompts()` return typed `userMessage` functions with autocomplete. `getComposer()` and `getComposers()` only accept generated composer IDs, with typed `input` and named prompt properties. Unknown prompt IDs fall back to `Record<string, unknown>`.
 
 Add the generated file to version control so types are available without running codegen in CI. Re-run `npx promptly generate` whenever you add, remove, or rename template variables in the CMS.
 
@@ -304,7 +304,7 @@ Fetch a single composer. Returns `ComposerResult` with named prompt properties, 
 
 | Option    | Type                      | Description          |
 |-----------|---------------------------|----------------------|
-| `input`   | `Record<string, string>`  | Template variables to interpolate |
+| `input`   | `Record<string, unknown>` | Template variables to interpolate |
 | `version` | `string`                  | Specific version to fetch (default: latest) |
 
 ### `client.getComposers(entries)`

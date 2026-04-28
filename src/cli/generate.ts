@@ -281,6 +281,16 @@ const buildSchemaMap = (schema: SchemaField[]): Map<string, SchemaField> => {
   return map;
 };
 
+const TYPE_IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+const typePropertyKey = (key: string): string => {
+  if (TYPE_IDENTIFIER_RE.test(key)) {
+    return key;
+  }
+
+  return `'${key.replaceAll('\\', '\\\\').replaceAll("'", "\\'")}'`;
+};
+
 const generateMappedTypeBlock = (
   group: VersionGroup,
   indent: string,
@@ -377,6 +387,7 @@ export const generateTypeDeclaration = (
 
     for (const composer of composers) {
       const variables = extractComposerVariables(composer);
+      const composerKey = typePropertyKey(composer.composerId);
       const schemaMap = buildSchemaMap(composer.config.schema);
       const versions: string[] = ["'latest'"];
       if (composer.publishedVersions) {
@@ -387,7 +398,7 @@ export const generateTypeDeclaration = (
         versions.push(`'${composer.version}'`);
       }
 
-      lines.push(`    '${composer.composerId}': {`);
+      lines.push(`    ${composerKey}: {`);
       if (versions.length === 1) {
         if (variables.length === 0) {
           lines.push(`      [V in ${versions[0]}]: Record<string, never>;`);
@@ -423,11 +434,12 @@ export const generateTypeDeclaration = (
 
     for (const composer of composers) {
       const names = extractComposerPromptNames(composer);
+      const composerKey = typePropertyKey(composer.composerId);
       if (names.length === 0) {
-        lines.push(`    '${composer.composerId}': never;`);
+        lines.push(`    ${composerKey}: never;`);
       } else {
         const union = names.map((n) => `'${n}'`).join(' | ');
-        lines.push(`    '${composer.composerId}': ${union};`);
+        lines.push(`    ${composerKey}: ${union};`);
       }
     }
 

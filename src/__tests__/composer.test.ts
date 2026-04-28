@@ -5,7 +5,7 @@ import {
   toCamelCase,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
-import type { ComposerResponse } from '../types.ts';
+import type { ComposerId, ComposerResponse } from '../types.ts';
 
 type MockFetch = ReturnType<typeof mock<typeof fetch>>;
 
@@ -293,7 +293,7 @@ test('getComposer() throws PromptlyError on 404', async () => {
   );
 
   try {
-    await client.getComposer('nonexistent');
+    await client.getComposer('nonexistent' as ComposerId);
     expect(true).toBe(false);
   } catch (err) {
     expect(err).toBeInstanceOf(PromptlyError);
@@ -500,7 +500,9 @@ test('formatComposer() reuses same result for duplicate prompt positions', async
   const { client } = setup(dupeResponse);
   const result = await client.getComposer('comp-123');
 
-  const output = result.formatComposer({ introPrompt: 'Result A' });
+  const output = result.formatComposer({
+    introPrompt: 'Result A',
+  } as Record<string, string>);
   expect(output).toBe('Result A | Result A');
 });
 

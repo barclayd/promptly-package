@@ -113,7 +113,7 @@ export const POST = async (req: Request) => {
 
 ## Type generation
 
-If you have run [codegen](/getting-started/type-generation/), the `input` object is fully typed to the exact variables defined in the CMS. Without codegen, inputs fall back to `Record<string, string>`.
+If you have run [codegen](/getting-started/type-generation/), the composer ID narrows to generated IDs and the `input` object is fully typed to the exact variables defined in the CMS. Without codegen, composer IDs accept any string and inputs fall back to `Record<string, unknown>`.
 
 ## Next steps
 

@@ -248,6 +248,18 @@ test('generateTypeDeclaration: includes ComposerPromptMap for composers', () => 
   expect(output).toContain("'introPrompt' | 'reviewPrompt'");
 });
 
+test('generateTypeDeclaration: emits valid identifier composer IDs without quotes', () => {
+  const output = generateTypeDeclaration(
+    [],
+    [mockComposer({ composerId: 'VFOoPTdkEW244dUl6fuo8' })],
+  );
+  expect(output).toContain('    VFOoPTdkEW244dUl6fuo8: {');
+  expect(output).toContain(
+    "    VFOoPTdkEW244dUl6fuo8: 'introPrompt' | 'reviewPrompt';",
+  );
+  expect(output).not.toContain("'VFOoPTdkEW244dUl6fuo8'");
+});
+
 test('generateTypeDeclaration: omits composer interfaces when no composers', () => {
   const output = generateTypeDeclaration([mockPrompt()]);
   expect(output).not.toContain('ComposerVariableMap');

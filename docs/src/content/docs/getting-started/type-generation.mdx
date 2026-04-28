@@ -81,7 +81,8 @@ With the generated file present, you get:
 - **Typed composer inputs** - `getComposer('id', { input: { ... } })` only accepts the correct input keys
 - **Typed prompt names** - destructured prompt names on `ComposerResult` are checked at compile time
 - **Version-aware types** - different versions can have different variables, and the types track this
-- **Fallback for unknown IDs** - untyped prompt or composer IDs fall back to `Record<string, string>`
+- **Strict composer IDs** - generated composer types narrow `getComposer()` and `getComposers()` to known composer IDs
+- **Fallback for unknown prompts** - untyped prompt IDs fall back to `Record<string, unknown>`
 
 ### Before codegen
 
