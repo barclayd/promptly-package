@@ -171,6 +171,11 @@ const output = formatComposer({
 });
 ```
 
+Prompt results are treated as text by default. Newlines in strings or `{ text }`
+results are preserved as `<br>` tags when the composer output is assembled. If a
+prompt result already contains trusted HTML, pass `{ html: '<p>...</p>' }` to
+`formatComposer()` to insert it without newline conversion.
+
 Batch fetch multiple composers in parallel:
 
 ```typescript
@@ -197,6 +202,9 @@ for (const segment of composer.segments) {
 ```
 
 Variable references inside an `html_block` (e.g. `<span data-variable-ref data-field-path="country">`) are interpolated normally during `formatComposer()` / `compose()`. Embedded prompt references inside an `html_block` are passed through opaquely — they aren't resolved as named prompts.
+
+HTML blocks are otherwise left raw, including whitespace, comments, and empty
+paragraphs.
 
 ## Model auto-detection
 

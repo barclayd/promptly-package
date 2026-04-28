@@ -196,20 +196,22 @@ type ComposerResponse = {
 
 ### `FormatInput`
 
-The value type accepted by `formatComposer()` for each prompt result. Accepts either a plain string or an object with a `text` property (matching the `generateText()` return shape).
+The value type accepted by `formatComposer()` for each prompt result. Accepts a plain string, an object with a `text` property (matching the `generateText()` return shape), or an explicit raw HTML object.
 
 ```typescript
-type FormatInput = { text: string } | string;
+type FormatInput = { text: string } | { html: string } | string;
 ```
+
+String and `{ text }` values preserve newlines as `<br>` tags in the assembled composer output. Use `{ html }` only for trusted HTML that should be inserted unchanged.
 
 ### `ComposerGenerateFn`
 
-The function type accepted by `compose()`. Any function that takes a `ComposerPrompt` and returns a `{ text: string }` object or a raw string.
+The function type accepted by `compose()`. Any function that takes a `ComposerPrompt` and returns a `FormatInput`.
 
 ```typescript
 type ComposerGenerateFn = (
   prompt: ComposerPrompt,
-) => Promise<{ text: string } | string>;
+) => Promise<FormatInput>;
 ```
 
 Compatible with `generateText` from the Vercel AI SDK.

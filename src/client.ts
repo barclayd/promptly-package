@@ -164,6 +164,29 @@ const VARIABLE_REF_ALT_REGEX =
 
 const MUSTACHE_REGEX = /\{\{(\w[\w.]*)\}\}/g;
 
+const EMPTY_PARAGRAPH_REGEX = /<p(\s[^>]*)?>\s*<\/p>/gi;
+
+const preserveEmptyParagraphs = (content: string): string =>
+  content.replace(
+    EMPTY_PARAGRAPH_REGEX,
+    (_, attributes: string | undefined) => `<p${attributes ?? ''}><br></p>`,
+  );
+
+const preserveTextLineBreaks = (content: string): string =>
+  content.replace(/\r\n?/g, '\n').replaceAll('\n', '<br>');
+
+const formatComposerInput = (input: FormatInput): string => {
+  if (typeof input === 'string') {
+    return preserveTextLineBreaks(input);
+  }
+
+  if ('html' in input) {
+    return input.html;
+  }
+
+  return preserveTextLineBreaks(input.text);
+};
+
 export const interpolateStaticSegment = (
   content: string,
   input: Record<string, unknown>,
@@ -286,7 +309,9 @@ export const createPromptlyClient = (
       if (segment.type === 'static') {
         processedSegments.push({
           type: 'static',
-          content: interpolateStaticSegment(segment.content, input),
+          content: preserveEmptyParagraphs(
+            interpolateStaticSegment(segment.content, input),
+          ),
         });
         continue;
       }
@@ -339,7 +364,7 @@ export const createPromptlyClient = (
         if (val === undefined) {
           continue;
         }
-        parts.push(typeof val === 'string' ? val : val.text);
+        parts.push(formatComposerInput(val));
       }
       return parts.join('');
     };

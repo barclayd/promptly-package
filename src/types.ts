@@ -222,11 +222,11 @@ export type ComposerPrompt = {
   promptName: string;
 };
 
-export type FormatInput = { text: string } | string;
+export type FormatInput = { text: string } | { html: string } | string;
 
 export type ComposerGenerateFn = (
   prompt: ComposerPrompt,
-) => Promise<{ text: string } | string>;
+) => Promise<FormatInput>;
 
 export type ComposerFormatFn<Names extends string = string> = (
   results: Record<Names, FormatInput>,
