@@ -1,5 +1,11 @@
 # @promptlycms/prompts
 
+## 0.6.0
+
+### Minor Changes
+
+- [#24](https://github.com/barclayd/promptly-package/pull/24) [`caa390f`](https://github.com/barclayd/promptly-package/commit/caa390f42792c47ef11640616342a9cf5c020764) Thanks [@barclayd](https://github.com/barclayd)! - Preserve composer line breaks by default when formatting prompt text and static rich-text segments.
+
 ## 0.5.0
 
 ### Minor Changes
