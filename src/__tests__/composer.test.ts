@@ -5,7 +5,7 @@ import {
   toCamelCase,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
-import type { ComposerId, ComposerResponse } from '../types.ts';
+import type { ComposerId, ComposerResponse, FormatInput } from '../types.ts';
 
 type MockFetch = ReturnType<typeof mock<typeof fetch>>;
 
@@ -508,6 +508,91 @@ test('formatComposer() accepts { text: string } values', async () => {
   expect(output).toContain('Generated review.');
 });
 
+test('formatComposer() preserves spacing before standalone prompt text paragraphs', async () => {
+  const furnComposerResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      { type: 'static', content: '<p>Hey Dan,<br></p><p>' },
+      {
+        type: 'prompt',
+        promptId: 'prompt-a',
+        promptName: 'Day 0 - Furn - Intro',
+        version: '1.0.0',
+        systemMessage: null,
+        userMessage: 'Write an intro.',
+        config: { model: 'claude-haiku-4.5', temperature: 0.7 },
+      },
+      { type: 'static', content: '</p><p></p><p>Next paragraph</p>' },
+    ],
+  };
+  const { client } = setup(furnComposerResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({
+    day0FurnIntro: { text: 'Generated intro.' },
+  } as Record<string, FormatInput>);
+
+  expect(output).toBe(
+    '<p>Hey Dan,<br></p><p><br>Generated intro.</p><p><br></p><p>Next paragraph</p>',
+  );
+});
+
+test('formatComposer() does not prefix inline prompt text', async () => {
+  const inlinePromptResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      { type: 'static', content: '<p>Before ' },
+      {
+        type: 'prompt',
+        promptId: 'prompt-a',
+        promptName: 'Intro Prompt',
+        version: '1.0.0',
+        systemMessage: null,
+        userMessage: 'Write inline text.',
+        config: { model: 'claude-haiku-4.5', temperature: 0.7 },
+      },
+      { type: 'static', content: ' after</p>' },
+    ],
+  };
+  const { client } = setup(inlinePromptResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({
+    introPrompt: { text: 'inline' },
+  } as Record<string, FormatInput>);
+
+  expect(output).toBe('<p>Before inline after</p>');
+});
+
+test('formatComposer() does not duplicate explicit spacer paragraphs before prompt text', async () => {
+  const spacerResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      { type: 'static', content: '<p>Before</p><p></p><p>' },
+      {
+        type: 'prompt',
+        promptId: 'prompt-a',
+        promptName: 'Intro Prompt',
+        version: '1.0.0',
+        systemMessage: null,
+        userMessage: 'Write text.',
+        config: { model: 'claude-haiku-4.5', temperature: 0.7 },
+      },
+      { type: 'static', content: '</p><p>After</p>' },
+    ],
+  };
+  const { client } = setup(spacerResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({
+    introPrompt: { text: 'Generated intro.' },
+  } as Record<string, FormatInput>);
+
+  expect(output).toBe(
+    '<p>Before</p><p><br></p><p>Generated intro.</p><p>After</p>',
+  );
+});
+
 test('formatComposer() preserves prompt result line breaks as br tags', async () => {
   const { client } = setup();
   const result = await client.getComposer('comp-123', {
@@ -537,6 +622,35 @@ test('formatComposer() accepts raw { html: string } values', async () => {
 
   expect(output).toBe(
     '<p>Hello</p><strong>Raw<br>intro</strong><p>---</p><em>Raw\nreview</em><p>End</p>',
+  );
+});
+
+test('formatComposer() does not prefix trusted html prompt results', async () => {
+  const standaloneHtmlResponse: ComposerResponse = {
+    ...mockComposerResponse,
+    segments: [
+      { type: 'static', content: '<p>Before</p><p>' },
+      {
+        type: 'prompt',
+        promptId: 'prompt-a',
+        promptName: 'Intro Prompt',
+        version: '1.0.0',
+        systemMessage: null,
+        userMessage: 'Write HTML.',
+        config: { model: 'claude-haiku-4.5', temperature: 0.7 },
+      },
+      { type: 'static', content: '</p><p>After</p>' },
+    ],
+  };
+  const { client } = setup(standaloneHtmlResponse);
+  const result = await client.getComposer('comp-123');
+
+  const output = result.formatComposer({
+    introPrompt: { html: '<strong>Trusted intro.</strong>' },
+  } as Record<string, FormatInput>);
+
+  expect(output).toBe(
+    '<p>Before</p><p><strong>Trusted intro.</strong></p><p>After</p>',
   );
 });
 

@@ -210,7 +210,7 @@ const output = await composer.compose((prompt) =>
 );
 ```
 
-`compose()` accepts any function matching `(prompt: ComposerPrompt) => Promise<FormatInput>`. String and `{ text }` results preserve newlines as `<br>` tags. Return `{ html }` only when you want trusted HTML inserted unchanged.
+`compose()` accepts any function matching `(prompt: ComposerPrompt) => Promise<FormatInput>`. String and `{ text }` results preserve newlines as `<br>` tags and keep visible paragraph gaps when inserted into standalone rich-text paragraphs. Return `{ html }` only when you want trusted HTML inserted unchanged.
 
 ### `formatComposer()` usage
 

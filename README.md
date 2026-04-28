@@ -172,9 +172,11 @@ const output = formatComposer({
 ```
 
 Prompt results are treated as text by default. Newlines in strings or `{ text }`
-results are preserved as `<br>` tags when the composer output is assembled. If a
-prompt result already contains trusted HTML, pass `{ html: '<p>...</p>' }` to
-`formatComposer()` to insert it without newline conversion.
+results are preserved as `<br>` tags when the composer output is assembled. If
+text prompt output is placed in its own rich-text paragraph, the SDK also keeps
+the visible paragraph gap in email-safe HTML. If a prompt result already
+contains trusted HTML, pass `{ html: '<p>...</p>' }` to `formatComposer()` to
+insert it without newline conversion.
 
 Batch fetch multiple composers in parallel:
 

@@ -30,7 +30,7 @@ const output = await compose(generateText);
 3. **Resolve models** — Each prompt segment's model is resolved to an AI SDK `LanguageModel`
 4. **Compose** — `compose()` passes each prompt to your generate function, runs them in parallel via `Promise.all`, and assembles the static HTML + AI text into a single string
 
-Composer output preserves authoring line breaks by default. Empty rich-text paragraphs from static segments stay visible, and newlines in generated text are emitted as `<br>` tags. Raw `html_block` segments remain opaque except for variable interpolation.
+Composer output preserves authoring line breaks by default. Empty rich-text paragraphs from static segments stay visible, text prompt output placed in its own rich-text paragraph keeps a visible email-safe paragraph gap, and newlines in generated text are emitted as `<br>` tags. Raw `html_block` segments remain opaque except for variable interpolation.
 
 ## Per-prompt overrides
 

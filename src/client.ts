@@ -175,16 +175,43 @@ const preserveEmptyParagraphs = (content: string): string =>
 const preserveTextLineBreaks = (content: string): string =>
   content.replace(/\r\n?/g, '\n').replaceAll('\n', '<br>');
 
+const isHtmlFormatInput = (input: FormatInput): input is { html: string } =>
+  typeof input === 'object' && input !== null && 'html' in input;
+
 const formatComposerInput = (input: FormatInput): string => {
   if (typeof input === 'string') {
     return preserveTextLineBreaks(input);
   }
 
-  if ('html' in input) {
+  if (isHtmlFormatInput(input)) {
     return input.html;
   }
 
   return preserveTextLineBreaks(input.text);
+};
+
+const STANDALONE_PROMPT_OPEN_PARAGRAPH_REGEX = /<\/p>\s*<p(?:\s[^>]*)?>\s*$/i;
+const STANDALONE_PROMPT_CLOSE_PARAGRAPH_REGEX = /^\s*<\/p>/i;
+const EXPLICIT_SPACER_BEFORE_OPEN_PARAGRAPH_REGEX =
+  /<p(?:\s[^>]*)?>\s*<br\s*\/?>\s*<\/p>\s*<p(?:\s[^>]*)?>\s*$/i;
+
+type ProcessedComposerSegment =
+  | { type: 'static'; content: string }
+  | { type: 'prompt'; camelName: string };
+
+const shouldPrefixStandalonePromptText = (
+  previous?: ProcessedComposerSegment,
+  next?: ProcessedComposerSegment,
+): boolean => {
+  if (previous?.type !== 'static' || next?.type !== 'static') {
+    return false;
+  }
+
+  return (
+    STANDALONE_PROMPT_OPEN_PARAGRAPH_REGEX.test(previous.content) &&
+    STANDALONE_PROMPT_CLOSE_PARAGRAPH_REGEX.test(next.content) &&
+    !EXPLICIT_SPACER_BEFORE_OPEN_PARAGRAPH_REGEX.test(previous.content)
+  );
 };
 
 export const interpolateStaticSegment = (
@@ -300,10 +327,7 @@ export const createPromptlyClient = (
     // Track processed segments for format() and de-duplicated prompts
     const promptsByName = new Map<string, ComposerPrompt>();
     const promptsOrdered: ComposerPrompt[] = [];
-    const processedSegments: Array<
-      | { type: 'static'; content: string }
-      | { type: 'prompt'; camelName: string }
-    > = [];
+    const processedSegments: ProcessedComposerSegment[] = [];
 
     for (const segment of response.segments) {
       if (segment.type === 'static') {
@@ -355,7 +379,7 @@ export const createPromptlyClient = (
 
     const formatComposer = (results: Record<string, FormatInput>): string => {
       const parts: string[] = [];
-      for (const seg of processedSegments) {
+      for (const [index, seg] of processedSegments.entries()) {
         if (seg.type === 'static') {
           parts.push(seg.content);
           continue;
@@ -364,7 +388,16 @@ export const createPromptlyClient = (
         if (val === undefined) {
           continue;
         }
-        parts.push(formatComposerInput(val));
+        const formattedInput = formatComposerInput(val);
+        const prefix =
+          isHtmlFormatInput(val) ||
+          !shouldPrefixStandalonePromptText(
+            processedSegments[index - 1],
+            processedSegments[index + 1],
+          )
+            ? ''
+            : '<br>';
+        parts.push(`${prefix}${formattedInput}`);
       }
       return parts.join('');
     };
