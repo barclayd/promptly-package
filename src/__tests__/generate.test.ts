@@ -226,6 +226,10 @@ declare module '@promptlycms/prompts' {
       };
     };
   }
+  interface ComposerVariableMap {
+  }
+  interface ComposerPromptMap {
+  }
 }
 `;
 
@@ -266,6 +270,10 @@ declare module '@promptlycms/prompts' {
         name: string;
       };
     };
+  }
+  interface ComposerVariableMap {
+  }
+  interface ComposerPromptMap {
   }
 }
 `;

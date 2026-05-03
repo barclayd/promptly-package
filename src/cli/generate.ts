@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { detectProviderName, toCamelCase } from '../client.ts';
-import { createErrorFromResponse } from '../errors.ts';
+import { createErrorFromResponse, PromptlyError } from '../errors.ts';
 import type {
   ComposerResponse,
   PromptResponse,
@@ -382,69 +382,63 @@ export const generateTypeDeclaration = (
 
   lines.push('  }');
 
-  if (composers.length > 0) {
-    lines.push('  interface ComposerVariableMap {');
+  lines.push('  interface ComposerVariableMap {');
 
-    for (const composer of composers) {
-      const variables = extractComposerVariables(composer);
-      const composerKey = typePropertyKey(composer.composerId);
-      const schemaMap = buildSchemaMap(composer.config.schema);
-      const versions: string[] = ["'latest'"];
-      if (composer.publishedVersions) {
-        for (const pv of composer.publishedVersions) {
-          versions.push(`'${pv.version}'`);
-        }
-      } else {
-        versions.push(`'${composer.version}'`);
+  for (const composer of composers) {
+    const variables = extractComposerVariables(composer);
+    const composerKey = typePropertyKey(composer.composerId);
+    const schemaMap = buildSchemaMap(composer.config.schema);
+    const versions: string[] = ["'latest'"];
+    if (composer.publishedVersions) {
+      for (const pv of composer.publishedVersions) {
+        versions.push(`'${pv.version}'`);
       }
-
-      lines.push(`    ${composerKey}: {`);
-      if (versions.length === 1) {
-        if (variables.length === 0) {
-          lines.push(`      [V in ${versions[0]}]: Record<string, never>;`);
-        } else {
-          lines.push(`      [V in ${versions[0]}]: {`);
-          for (const v of variables) {
-            lines.push(
-              `        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
-            );
-          }
-          lines.push('      };');
-        }
-      } else {
-        const versionUnion = versions.join(' | ');
-        if (variables.length === 0) {
-          lines.push(`      [V in ${versionUnion}]: Record<string, never>;`);
-        } else {
-          lines.push(`      [V in ${versionUnion}]: {`);
-          for (const v of variables) {
-            lines.push(
-              `        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
-            );
-          }
-          lines.push('      };');
-        }
-      }
-      lines.push('    };');
+    } else {
+      versions.push(`'${composer.version}'`);
     }
 
-    lines.push('  }');
-
-    lines.push('  interface ComposerPromptMap {');
-
-    for (const composer of composers) {
-      const names = extractComposerPromptNames(composer);
-      const composerKey = typePropertyKey(composer.composerId);
-      if (names.length === 0) {
-        lines.push(`    ${composerKey}: never;`);
+    lines.push(`    ${composerKey}: {`);
+    if (versions.length === 1) {
+      if (variables.length === 0) {
+        lines.push(`      [V in ${versions[0]}]: Record<string, never>;`);
       } else {
-        const union = names.map((n) => `'${n}'`).join(' | ');
-        lines.push(`    ${composerKey}: ${union};`);
+        lines.push(`      [V in ${versions[0]}]: {`);
+        for (const v of variables) {
+          lines.push(`        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`);
+        }
+        lines.push('      };');
+      }
+    } else {
+      const versionUnion = versions.join(' | ');
+      if (variables.length === 0) {
+        lines.push(`      [V in ${versionUnion}]: Record<string, never>;`);
+      } else {
+        lines.push(`      [V in ${versionUnion}]: {`);
+        for (const v of variables) {
+          lines.push(`        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`);
+        }
+        lines.push('      };');
       }
     }
-
-    lines.push('  }');
+    lines.push('    };');
   }
+
+  lines.push('  }');
+
+  lines.push('  interface ComposerPromptMap {');
+
+  for (const composer of composers) {
+    const names = extractComposerPromptNames(composer);
+    const composerKey = typePropertyKey(composer.composerId);
+    if (names.length === 0) {
+      lines.push(`    ${composerKey}: never;`);
+    } else {
+      const union = names.map((n) => `'${n}'`).join(' | ');
+      lines.push(`    ${composerKey}: ${union};`);
+    }
+  }
+
+  lines.push('  }');
 
   lines.push('}');
   lines.push('');
@@ -511,7 +505,19 @@ export const generate = async (
 ): Promise<void> => {
   const [prompts, composers] = await Promise.all([
     fetchAllPrompts(apiKey, baseUrl),
-    fetchAllComposers(apiKey, baseUrl).catch(() => [] as ComposerResponse[]),
+    fetchAllComposers(apiKey, baseUrl).catch((err) => {
+      if (err instanceof PromptlyError) {
+        console.warn(
+          `  Warning: failed to fetch composers (${err.code}, HTTP ${err.status}): ${err.message}`,
+        );
+        console.warn(
+          '  Composer types will be omitted from promptly-env.d.ts.',
+        );
+      } else {
+        console.warn(`  Warning: failed to fetch composers: ${String(err)}`);
+      }
+      return [] as ComposerResponse[];
+    }),
   ]);
 
   if (prompts.length === 0 && composers.length === 0) {

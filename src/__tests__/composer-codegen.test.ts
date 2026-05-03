@@ -260,10 +260,10 @@ test('generateTypeDeclaration: emits valid identifier composer IDs without quote
   expect(output).not.toContain("'VFOoPTdkEW244dUl6fuo8'");
 });
 
-test('generateTypeDeclaration: omits composer interfaces when no composers', () => {
+test('generateTypeDeclaration: emits empty composer interfaces when no composers', () => {
   const output = generateTypeDeclaration([mockPrompt()]);
-  expect(output).not.toContain('ComposerVariableMap');
-  expect(output).not.toContain('ComposerPromptMap');
+  expect(output).toContain('interface ComposerVariableMap {');
+  expect(output).toContain('interface ComposerPromptMap {');
 });
 
 test('generateTypeDeclaration: handles composers with no variables', () => {
