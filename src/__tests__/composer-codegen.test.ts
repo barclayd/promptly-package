@@ -356,6 +356,42 @@ test('generateTypeDeclaration: uses schema types for composer variables', () => 
   expect(output).toContain('count: number;');
 });
 
+test('generateTypeDeclaration: marks optional composer schema fields as optional', () => {
+  const schema: SchemaField[] = [
+    { id: 'name', name: 'name', type: 'string', validations: [], params: {} },
+    {
+      id: 'count',
+      name: 'count',
+      type: 'number',
+      validations: [{ id: 'o', type: 'optional', value: '', message: '' }],
+      params: {},
+    },
+  ];
+  const output = generateTypeDeclaration(
+    [],
+    [
+      mockComposer({
+        config: { schema, inputData: null, inputDataRootName: null },
+        segments: [
+          {
+            type: 'prompt',
+            promptId: 'p1',
+            promptName: 'Intro',
+            version: '1.0.0',
+            systemMessage: null,
+            // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+            userMessage: '${name} x${count}',
+            config: {},
+          },
+        ],
+      }),
+    ],
+  );
+  expect(output).toContain('name: string;');
+  expect(output).toContain('count?: number;');
+  expect(output).not.toContain('count: number;');
+});
+
 // --- extractStaticSegmentVariables ---
 
 test('extractStaticSegmentVariables: extracts data-field-path variables', () => {

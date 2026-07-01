@@ -40,6 +40,17 @@ const message = result.userMessage({
 
 If you've run [codegen](/getting-started/type-generation/), the variables are fully typed.
 
+### Optional variables
+
+Variables backed by an optional schema field (`.optional()`, `.nullish()`, or `.default()`) are typed as optional and can be omitted. When a variable is absent — a missing key, `undefined`, or `null` — it renders as the placeholder `[not provided]` so the model gets an explicit signal rather than a blank or a leftover `${variable}`:
+
+```typescript
+const message = result.userMessage({ pickupLocation: 'London' });
+// => 'Help with London moving [not provided].'
+```
+
+The placeholder string is exported as `NOT_PROVIDED_PLACEHOLDER` if you need to detect or template around it.
+
 ### Raw template access
 
 To get the raw template string with `${variable}` placeholders intact, use `String()`:
