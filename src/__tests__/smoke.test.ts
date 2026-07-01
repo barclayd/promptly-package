@@ -186,7 +186,8 @@ test('smoke: generateTypeDeclaration() produces valid declaration from real prom
     expect(declaration).toContain("'latest'");
     const vars = extractTemplateVariables(prompt.userMessage);
     for (const v of vars) {
-      expect(declaration).toMatch(new RegExp(`${v}: \\w`));
+      // `?` allows for optional fields (`.optional()`/`.nullish()`/`.default()`)
+      expect(declaration).toMatch(new RegExp(`${v}\\??: \\w`));
     }
 
     if (prompt.publishedVersions) {

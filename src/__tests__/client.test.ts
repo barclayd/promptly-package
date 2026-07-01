@@ -4,6 +4,8 @@ import {
   createPromptlyClient,
   detectProviderName,
   getSdkModelId,
+  interpolate,
+  NOT_PROVIDED_PLACEHOLDER,
   resolveModel,
 } from '../client.ts';
 import { PromptlyError } from '../errors.ts';
@@ -239,6 +241,47 @@ test('getPrompt() returns callable userMessage that interpolates variables', asy
   expect(result.userMessage({ name: 'Alice', task: 'coding' })).toBe(
     'Hello Alice, please help with coding.',
   );
+});
+
+test('interpolate() substitutes provided values', () => {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  expect(interpolate('Hello ${name}', { name: 'Alice' })).toBe('Hello Alice');
+});
+
+test('interpolate() renders placeholder for a missing variable', () => {
+  expect(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    interpolate('Days: ${daysUntilMove}', {}),
+  ).toBe(`Days: ${NOT_PROVIDED_PLACEHOLDER}`);
+});
+
+test('interpolate() renders placeholder for an explicit undefined', () => {
+  expect(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    interpolate('Days: ${daysUntilMove}', { daysUntilMove: undefined }),
+  ).toBe(`Days: ${NOT_PROVIDED_PLACEHOLDER}`);
+});
+
+test('interpolate() renders placeholder for a null value', () => {
+  expect(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    interpolate('Days: ${daysUntilMove}', { daysUntilMove: null }),
+  ).toBe(`Days: ${NOT_PROVIDED_PLACEHOLDER}`);
+});
+
+test('interpolate() renders 0 and empty string as provided values', () => {
+  expect(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+    interpolate('${count} items for ${name}', { count: 0, name: '' }),
+  ).toBe('0 items for ');
+});
+
+test('interpolate() does not re-interpolate injected values', () => {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+  const result = interpolate('${a} then ${b}', { a: '${b}', b: 'real' });
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: expected output retains literal template syntax
+  const expected = '${b} then real';
+  expect(result).toBe(expected);
 });
 
 test('getPrompt() returns userMessage with toString() for raw template', async () => {

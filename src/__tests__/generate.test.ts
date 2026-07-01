@@ -4,20 +4,29 @@ import {
   extractTemplateVariables,
   generateTypeDeclaration,
   groupAndSortVersions,
+  schemaFieldProperty,
   schemaFieldToTsType,
 } from '../cli/generate.ts';
-import type { PromptResponse, SchemaField } from '../types.ts';
+import type { PromptResponse, SchemaField, ValidationRule } from '../types.ts';
 
 const field = (
   name: string,
   type: string,
   params: SchemaField['params'] = {},
+  validations: ValidationRule[] = [],
 ): SchemaField => ({
   id: name,
   name,
   type,
-  validations: [],
+  validations,
   params,
+});
+
+const rule = (type: string, value = ''): ValidationRule => ({
+  id: type,
+  type,
+  value,
+  message: '',
 });
 
 const makePrompt = (
@@ -378,6 +387,49 @@ test('schemaFieldToTsType: returns string for date field', () => {
   expect(schemaFieldToTsType(field('x', 'date'))).toBe('string');
 });
 
+// --- schemaFieldProperty ---
+
+test('schemaFieldProperty: required field uses colon', () => {
+  expect(schemaFieldProperty('x', field('x', 'number'))).toBe('x: number;');
+});
+
+test('schemaFieldProperty: optional field uses question mark', () => {
+  expect(
+    schemaFieldProperty('x', field('x', 'number', {}, [rule('optional')])),
+  ).toBe('x?: number;');
+});
+
+test('schemaFieldProperty: nullable field widens type to include null', () => {
+  expect(
+    schemaFieldProperty('x', field('x', 'number', {}, [rule('nullable')])),
+  ).toBe('x: number | null;');
+});
+
+test('schemaFieldProperty: nullish field is optional and nullable', () => {
+  expect(
+    schemaFieldProperty('x', field('x', 'number', {}, [rule('nullish')])),
+  ).toBe('x?: number | null;');
+});
+
+test('schemaFieldProperty: field with default is optional', () => {
+  expect(
+    schemaFieldProperty('x', field('x', 'number', {}, [rule('default', '5')])),
+  ).toBe('x?: number;');
+});
+
+test('schemaFieldProperty: optional enum field', () => {
+  expect(
+    schemaFieldProperty(
+      'x',
+      field('x', 'enum', { enumValues: ['a', 'b'] }, [rule('optional')]),
+    ),
+  ).toBe("x?: 'a' | 'b';");
+});
+
+test('schemaFieldProperty: undefined field falls back to required string', () => {
+  expect(schemaFieldProperty('x', undefined)).toBe('x: string;');
+});
+
 // --- generateTypeDeclaration with schema types ---
 
 test('generateTypeDeclaration: uses number type from schema', () => {
@@ -425,4 +477,29 @@ test('generateTypeDeclaration: falls back to string for variables not in schema'
 
   expect(result).toContain('known: number;');
   expect(result).toContain('unknown: string;');
+});
+
+test('generateTypeDeclaration: marks optional schema fields as optional', () => {
+  const prompts = [
+    makePrompt({
+      promptId: 'optional-prompt',
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: CMS template variable syntax
+      userMessage: '${name} moves in ${daysUntilMove} days',
+      config: {
+        model: 'claude-haiku-4.5',
+        temperature: 0.7,
+        schema: [
+          field('name', 'string'),
+          field('daysUntilMove', 'number', {}, [rule('optional')]),
+        ],
+        inputData: null,
+        inputDataRootName: null,
+      },
+    }),
+  ];
+  const result = generateTypeDeclaration(prompts);
+
+  expect(result).toContain('name: string;');
+  expect(result).toContain('daysUntilMove?: number;');
+  expect(result).not.toContain('daysUntilMove: number;');
 });

@@ -98,16 +98,25 @@ export const resolveModel = async (
   }
 };
 
+// Rendered in place of a template variable whose value is absent — a missing
+// key, `undefined`, or `null`. Gives the model an explicit signal that a value
+// was not provided, rather than a leftover `${var}` placeholder or the string
+// "undefined".
+export const NOT_PROVIDED_PLACEHOLDER = '[not provided]';
+
+const TEMPLATE_VARIABLE_REGEX = /\$\{(\w+)\}/g;
+
 export const interpolate = (
   template: string,
   variables: Record<string, unknown>,
-): string => {
-  let result = template;
-  for (const [key, value] of Object.entries(variables)) {
-    result = result.replaceAll(`\${${key}}`, String(value));
-  }
-  return result;
-};
+): string =>
+  template.replace(TEMPLATE_VARIABLE_REGEX, (_match, key: string) => {
+    const value = variables[key];
+    if (value === undefined || value === null) {
+      return NOT_PROVIDED_PLACEHOLDER;
+    }
+    return String(value);
+  });
 
 const createPromptMessage = (template: string): PromptMessage => {
   const fn = (variables: Record<string, unknown>): string =>

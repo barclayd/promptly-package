@@ -273,6 +273,30 @@ export const schemaFieldToTsType = (field?: SchemaField): string => {
   }
 };
 
+// `.optional()`/`.nullish()`/`.default()` make an input property omittable;
+// `.nullable()`/`.nullish()` widen its value type to include `null`.
+const OPTIONAL_VALIDATIONS = new Set(['optional', 'nullish', 'default']);
+const NULLABLE_VALIDATIONS = new Set(['nullable', 'nullish']);
+
+const hasValidation = (
+  field: SchemaField | undefined,
+  types: Set<string>,
+): boolean => field?.validations.some((rule) => types.has(rule.type)) ?? false;
+
+// Builds a full object property signature (`name?: type;`) reflecting the
+// field's optionality and nullability validation rules.
+export const schemaFieldProperty = (
+  name: string,
+  field?: SchemaField,
+): string => {
+  const optional = hasValidation(field, OPTIONAL_VALIDATIONS);
+  const baseType = schemaFieldToTsType(field);
+  const type = hasValidation(field, NULLABLE_VALIDATIONS)
+    ? `${baseType} | null`
+    : baseType;
+  return `${name}${optional ? '?' : ''}: ${type};`;
+};
+
 const buildSchemaMap = (schema: SchemaField[]): Map<string, SchemaField> => {
   const map = new Map<string, SchemaField>();
   for (const field of schema) {
@@ -306,9 +330,7 @@ const generateMappedTypeBlock = (
     } else {
       lines.push(`${indent}[V in ${vKey}]: {`);
       for (const v of variables) {
-        lines.push(
-          `${indent}  ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
-        );
+        lines.push(`${indent}  ${schemaFieldProperty(v, schemaMap.get(v))}`);
       }
       lines.push(`${indent}};`);
     }
@@ -329,9 +351,7 @@ const generateMappedTypeBlock = (
     }
     if (variables.length > 0) {
       for (const v of variables) {
-        lines.push(
-          `${indent}  ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`,
-        );
+        lines.push(`${indent}  ${schemaFieldProperty(v, schemaMap.get(v))}`);
       }
       lines.push(`${indent}};`);
     }
@@ -404,7 +424,7 @@ export const generateTypeDeclaration = (
       } else {
         lines.push(`      [V in ${versions[0]}]: {`);
         for (const v of variables) {
-          lines.push(`        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`);
+          lines.push(`        ${schemaFieldProperty(v, schemaMap.get(v))}`);
         }
         lines.push('      };');
       }
@@ -415,7 +435,7 @@ export const generateTypeDeclaration = (
       } else {
         lines.push(`      [V in ${versionUnion}]: {`);
         for (const v of variables) {
-          lines.push(`        ${v}: ${schemaFieldToTsType(schemaMap.get(v))};`);
+          lines.push(`        ${schemaFieldProperty(v, schemaMap.get(v))}`);
         }
         lines.push('      };');
       }

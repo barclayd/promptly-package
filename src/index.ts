@@ -3,6 +3,7 @@ export {
   getSdkModelId,
   interpolate,
   interpolateStaticSegment,
+  NOT_PROVIDED_PLACEHOLDER,
   toCamelCase,
 } from './client.ts';
 export { PromptlyError } from './errors.ts';
