@@ -20,117 +20,187 @@ When you sign in, Promptly asks what the agent may do: **Read only**, **Create a
 ## Choose your agent
 
 <Tabs syncKey="agent">
-  <TabItem label="Claude">
+<TabItem label="Claude">
 
-    **Claude Code**
+**Claude Code**
 
-    <Steps>
+<Steps>
 
-    1. Add the server:
+1. Add the server:
 
-       ```bash wrap
-       claude mcp add-json promptly '{"type":"http","url":"https://app.promptlycms.com/mcp","oauth":{"scopes":"mcp:read mcp:write mcp:publish mcp:run"}}'
-       ```
+   ```bash wrap
+   claude mcp add-json promptly '{"type":"http","url":"https://app.promptlycms.com/mcp","oauth":{"scopes":"mcp:read mcp:write mcp:publish mcp:run"}}'
+   ```
 
-    2. Open `/mcp` in Claude Code, select **promptly** and sign in to Promptly in your browser.
+2. Open `/mcp` in Claude Code, select **promptly** and sign in to Promptly in your browser.
 
-    3. Select **Reconnect** in `/mcp` to load the tools.
+3. Select **Reconnect** in `/mcp` to load the tools.
 
-    </Steps>
+</Steps>
 
-    If you added Promptly before, run `claude mcp remove promptly` first.
+If you added Promptly before, run `claude mcp remove promptly` first.
 
-    **Claude apps (web and desktop)**
+**Claude apps (web and desktop)**
 
-    <Steps>
+<Steps>
 
-    1. Open **Customize → Connectors** and add a custom connector.
+1. Open **Customize → Connectors** and add a custom connector.
 
-    2. Enter `https://app.promptlycms.com/mcp` as the server URL.
+2. Enter `https://app.promptlycms.com/mcp` as the server URL.
 
-    3. Select **Connect** and sign in to Promptly.
+3. Select **Connect** and sign in to Promptly.
 
-    </Steps>
+</Steps>
 
-    On Team and Enterprise plans, a workspace owner adds the connector for the organization first. See [Anthropic's custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+On Team and Enterprise plans, a workspace owner adds the connector for the organization first. See [Anthropic's custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
 
-  </TabItem>
-  <TabItem label="Codex / ChatGPT">
+</TabItem>
+<TabItem label="Codex / ChatGPT">
 
-    **Codex**
+**Codex**
 
-    <Steps>
+<Steps>
 
-    1. Add the server and sign in:
+1. Add the server and sign in:
 
-       ```bash wrap
-       codex mcp add promptly --url https://app.promptlycms.com/mcp
-       codex mcp login promptly --scopes mcp:read,mcp:write,mcp:publish,mcp:run
-       ```
+   ```bash wrap
+   codex mcp add promptly --url https://app.promptlycms.com/mcp
+   codex mcp login promptly --scopes mcp:read,mcp:write,mcp:publish,mcp:run
+   ```
 
-    2. Finish signing in to Promptly in your browser.
+2. Finish signing in to Promptly in your browser.
 
-    </Steps>
+</Steps>
 
-    If Promptly is already configured, run `codex mcp logout promptly` and repeat only the login command. See [OpenAI's Codex MCP guide](https://developers.openai.com/codex/mcp).
+If Promptly is already configured, run `codex mcp logout promptly` and repeat only the login command. See [OpenAI's Codex MCP guide](https://developers.openai.com/codex/mcp).
 
-    **ChatGPT**
+**ChatGPT**
 
-    <Steps>
+<Steps>
 
-    1. Turn on developer mode, then open **Plugins → Create app**.
+1. Turn on developer mode, then open **Plugins → Create app**.
 
-    2. Enter `https://app.promptlycms.com/mcp` as the server URL and select **OAuth**.
+2. Enter `https://app.promptlycms.com/mcp` as the server URL and select **OAuth**.
 
-    3. Under **Advanced OAuth settings**, keep the detected default (CIMD).
+3. Under **Advanced OAuth settings**, keep the detected default (CIMD).
 
-    4. Create the app and sign in to Promptly.
+4. Create the app and sign in to Promptly.
 
-    </Steps>
+</Steps>
 
-    If the actions list is empty, select **Refresh actions**. On Business and Enterprise plans, an administrator may need to enable workspace access. See [OpenAI's developer mode guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt-beta).
+If the actions list is empty, select **Refresh actions**. On Business and Enterprise plans, an administrator may need to enable workspace access. See [OpenAI's developer mode guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt-beta).
 
-  </TabItem>
-  <TabItem label="Cursor">
+</TabItem>
+<TabItem label="Cursor">
 
-    Cursor needs a client ID, so register it with Promptly first.
+**Cursor**
 
-    <Steps>
+Cursor needs a client ID, so register it with Promptly first.
 
-    1. Open [Register a client](https://app.promptlycms.com/settings/mcp/clients) in Promptly. Name it **Cursor** and enter these callback URLs, one per line:
+<Steps>
 
-       ```
-       cursor://anysphere.cursor-mcp/oauth/callback
-       http://localhost:8787/callback
-       https://www.cursor.com/agents/mcp/oauth/callback
-       ```
+1. Open [Register a client](https://app.promptlycms.com/settings/mcp/clients) in Promptly. Name it **Cursor** and enter these callback URLs, one per line:
 
-       For **Does your client require a secret?**, choose **No - public client**.
+   ```
+   cursor://anysphere.cursor-mcp/oauth/callback
+   http://localhost:8787/callback
+   https://www.cursor.com/agents/mcp/oauth/callback
+   ```
 
-    2. Add Promptly to `.cursor/mcp.json` in your project, or to `~/.cursor/mcp.json` for every project. Replace `YOUR_PROMPTLY_CLIENT_ID` with the client ID from step 1:
+   For **Does your client require a secret?**, choose **No - public client**.
 
-       ```json title=".cursor/mcp.json"
-       {
-         "mcpServers": {
-           "promptly": {
-             "url": "https://app.promptlycms.com/mcp",
-             "auth": {
-               "CLIENT_ID": "YOUR_PROMPTLY_CLIENT_ID",
-               "scopes": ["mcp:read", "mcp:write", "mcp:publish", "mcp:run"]
-             }
-           }
+2. Add Promptly to `.cursor/mcp.json` in your project, or to `~/.cursor/mcp.json` for every project. Replace `YOUR_PROMPTLY_CLIENT_ID` with the client ID from step 1:
+
+   ```json title=".cursor/mcp.json"
+   {
+     "mcpServers": {
+       "promptly": {
+         "url": "https://app.promptlycms.com/mcp",
+         "auth": {
+           "CLIENT_ID": "YOUR_PROMPTLY_CLIENT_ID",
+           "scopes": ["mcp:read", "mcp:write", "mcp:publish", "mcp:run"]
          }
        }
-       ```
+     }
+   }
+   ```
 
-    3. Enable **promptly** in Cursor's MCP settings and sign in to Promptly.
+3. Enable **promptly** in Cursor's MCP settings and sign in to Promptly.
 
-    </Steps>
+</Steps>
 
-    Use `mcp.json` rather than Cursor's `--add-mcp` command, which writes an entry Cursor's settings don't pick up. See [Cursor's MCP guide](https://cursor.com/docs/mcp).
+Use `mcp.json` rather than Cursor's `--add-mcp` command, which writes an entry Cursor's settings don't pick up. See [Cursor's MCP guide](https://cursor.com/docs/mcp).
 
-  </TabItem>
+</TabItem>
 </Tabs>
+
+## Let your agent set it up
+
+Rather not run the steps yourself? Paste this prompt into your agent. It runs the setup and tells you when to sign in to Promptly.
+
+<Tabs syncKey="agent">
+<TabItem label="Claude">
+
+```text wrap title="Prompt for Claude Code"
+Connect this Claude Code session to the Promptly MCP server.
+
+1. Run this command. If a server named promptly already exists, run `claude mcp remove promptly` first.
+   claude mcp add-json promptly '{"type":"http","url":"https://app.promptlycms.com/mcp","oauth":{"scopes":"mcp:read mcp:write mcp:publish mcp:run"}}'
+2. Tell me to open /mcp, select promptly and sign in to Promptly in my browser. If promptly isn't listed, tell me to restart Claude Code with `claude --continue` first.
+3. Once I've signed in, call Promptly's get_connection tool and tell me which workspace you're connected to and what you're allowed to do.
+
+If anything fails, read https://docs.promptlycms.com/mcp/connect.md and help me fix it.
+```
+
+The Claude apps can't add connectors themselves, so follow the steps above for those.
+
+</TabItem>
+<TabItem label="Codex / ChatGPT">
+
+```text wrap title="Prompt for Codex"
+Connect Codex to the Promptly MCP server.
+
+1. Run these commands. They write to ~/.codex, so ask me for approval if your sandbox blocks them. If promptly is already configured, skip the first command and run `codex mcp logout promptly` before logging in.
+   codex mcp add promptly --url https://app.promptlycms.com/mcp
+   codex mcp login promptly --scopes mcp:read,mcp:write,mcp:publish,mcp:run
+2. The login command opens my browser. Wait for me to finish signing in to Promptly.
+3. Tell me to start a new Codex session so the Promptly tools load, and to ask it to call Promptly's get_connection tool.
+
+If anything fails, read https://docs.promptlycms.com/mcp/connect.md and help me fix it.
+```
+
+ChatGPT can't add apps itself, so follow the steps above for ChatGPT.
+
+</TabItem>
+<TabItem label="Cursor">
+
+```text wrap title="Prompt for Cursor"
+Connect Cursor to the Promptly MCP server.
+
+1. Ask me for my Promptly client ID. If I don't have one, tell me to open https://app.promptlycms.com/settings/mcp/clients, name the client Cursor, enter these callback URLs one per line and choose "No - public client":
+   cursor://anysphere.cursor-mcp/oauth/callback
+   http://localhost:8787/callback
+   https://www.cursor.com/agents/mcp/oauth/callback
+2. Add this server to .cursor/mcp.json in this project under "mcpServers", keeping any servers already there. Use my client ID in place of YOUR_PROMPTLY_CLIENT_ID:
+   "promptly": {
+     "url": "https://app.promptlycms.com/mcp",
+     "auth": {
+       "CLIENT_ID": "YOUR_PROMPTLY_CLIENT_ID",
+       "scopes": ["mcp:read", "mcp:write", "mcp:publish", "mcp:run"]
+     }
+   }
+3. Tell me to enable promptly in Cursor's MCP settings and sign in to Promptly.
+4. Once I've signed in, call Promptly's get_connection tool and tell me which workspace you're connected to and what you're allowed to do. If the tool isn't available yet, tell me to start a new chat.
+
+If anything fails, read https://docs.promptlycms.com/mcp/connect.md and help me fix it.
+```
+
+</TabItem>
+</Tabs>
+
+<Aside type="tip" title="Give your agent any page">
+Every page on this site is also available as Markdown. Select **Copy Markdown** at the top of a page to paste it into a chat, or give your agent the link with `.md` on the end, like [docs.promptlycms.com/mcp/connect.md](https://docs.promptlycms.com/mcp/connect.md). For the whole site, share [docs.promptlycms.com/llms.txt](https://docs.promptlycms.com/llms.txt).
+</Aside>
 
 ## Other agents
 

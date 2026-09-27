@@ -1,5 +1,6 @@
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import starlightPageActions from 'starlight-page-actions';
 
 /** Replace purple keyword colors with blue in Night Owl themes */
 const replacePurpleTokens = (theme) => {
@@ -21,6 +22,12 @@ export default defineConfig({
   devToolbar: { enabled: false },
   integrations: [
     starlight({
+      plugins: [
+        starlightPageActions({
+          baseUrl: 'https://docs.promptlycms.com',
+          actions: { cursor: true },
+        }),
+      ],
       expressiveCode: {
         customizeTheme: replacePurpleTokens,
       },
