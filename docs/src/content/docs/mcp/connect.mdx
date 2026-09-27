@@ -1,6 +1,6 @@
 ---
 title: Connect your agent
-description: Add the Promptly MCP server to Claude, Codex, ChatGPT, Cursor or Grok.
+description: Add the Promptly MCP server to Claude, Codex, ChatGPT or Cursor.
 ---
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
@@ -128,36 +128,6 @@ When you sign in, Promptly asks what the agent may do: **Read only**, **Create a
     </Steps>
 
     Use `mcp.json` rather than Cursor's `--add-mcp` command, which writes an entry Cursor's settings don't pick up. See [Cursor's MCP guide](https://cursor.com/docs/mcp).
-
-  </TabItem>
-  <TabItem label="Grok">
-
-    <Aside type="caution">
-      Grok support is new. If sign-in doesn't complete, [open an issue](https://github.com/barclayd/promptly-package/issues) and use another agent in the meantime.
-    </Aside>
-
-    Grok needs a client ID, so register it with Promptly first.
-
-    <Steps>
-
-    1. Open [Register a client](https://app.promptlycms.com/settings/mcp/clients) in Promptly. Name it **Grok** and enter these callback URLs, one per line:
-
-       ```
-       https://grok.com/connectors/oauth/callback
-       https://grok.com/connectors-oauth-exchange-code/
-       ```
-
-       For **Does your client require a secret?**, choose **No - public client**.
-
-    2. Go to [grok.com/connectors](https://grok.com/connectors), select **New Connector**, then **Custom**.
-
-    3. Enter `https://app.promptlycms.com/mcp` as the server URL. When Grok asks for OAuth details, paste the client ID from step 1, leave the client secret empty and choose PKCE (S256) if offered.
-
-    4. Save the connector and sign in to Promptly.
-
-    </Steps>
-
-    Grok Build and the xAI API only send API keys, and the Promptly MCP server uses sign-in instead, so they can't connect yet. See [xAI's connector guide](https://docs.x.ai/grok/connectors).
 
   </TabItem>
 </Tabs>
