@@ -1,0 +1,80 @@
+---
+title: MCP Server
+description: Let your AI agent create, test and publish prompts and composers in your Promptly workspace.
+---
+
+import { Aside, LinkCard } from '@astrojs/starlight/components';
+
+The Promptly MCP server lets AI agents like Claude, Codex, ChatGPT, Cursor and Grok work in your Promptly workspace. Your agent can find, write, test and publish prompts and composers, and your team sees the same drafts in the Promptly app.
+
+<LinkCard
+  title="Connect your agent"
+  description="Set up Claude, Codex, ChatGPT, Cursor or Grok in a couple of minutes."
+  href="/mcp/connect/"
+/>
+
+## What your agent can do
+
+- **Find and read** prompts, composers and snippets, including drafts, published versions and their history.
+- **Create and edit drafts** of prompts and composers, including their content, model settings, input schemas and sample data.
+- **Validate and preview** a draft to see the exact messages it produces, without calling a model.
+- **Publish** prompts and composers once they pass Promptly's checks.
+- **Test and compare** versions against real models using your workspace's API keys.
+- **Undo changes** by restoring an earlier saved state into the draft.
+
+Agents edit the same shared draft as the Promptly app. Open editors update automatically, and if you have unsaved edits, Promptly shows the conflict instead of overwriting your work.
+
+## Things to ask your agent
+
+Copy one of these into your agent once it's connected.
+
+```text wrap
+Find the prompts in this repo that are hardcoded strings. Move each one into Promptly as a draft, with an input schema for its template variables, then replace the string with a getPrompt() call.
+```
+
+```text wrap
+Create a Promptly composer for a weekly customer email from this brief: <paste brief>. Create the prompts it needs, preview it with sample data, then publish the prompts and the composer.
+```
+
+```text wrap
+Test the draft of our upsell-message prompt against its latest published version on two different models, and summarise the differences.
+```
+
+```text wrap
+Show me what changed in the welcome-email prompt this week, then restore the version from before my last edit.
+```
+
+## Permissions
+
+You choose what each agent may do when it signs in.
+
+| Permission | Your agent can |
+| --- | --- |
+| Read only | Search, read and preview content and its history |
+| Create and edit drafts (default) | Everything above, plus create, edit and restore drafts |
+| Create, edit, and publish | Everything above, plus publish new versions |
+| Run tests (separate option) | Run prompts, snippets and composers against models. May cost money on your provider keys |
+
+Promptly checks your current role on every request, so an agent never has more access than you do. See the [tools reference](/mcp/tools/) for the tools each permission unlocks.
+
+## Published prompts in your agent
+
+Published prompts also appear in your agent's prompt menu, for example the slash-command menu in Claude Code. Choose one, supply its input values and Promptly returns the prepared messages. The prompt's saved model and temperature don't change the model your agent uses.
+
+## Built-in safety
+
+- **Saving a draft never publishes.** Only the publish tools publish, and only if you granted publishing.
+- **Composers never publish prompt drafts.** A composer can only be published once the prompts it uses have published versions.
+- **Stale edits are rejected.** If someone changes a draft after the agent read it, the agent has to read it again before saving.
+- **Every change is recorded.** Activity shows who changed what, from which agent, and keeps restorable snapshots for 90 days.
+
+## Limits
+
+- Agents can't delete content or create and edit snippets. They can read, reuse and test existing snippets.
+- Each change applies to one prompt or composer at a time.
+- MCP usage is tracked separately and doesn't count toward your monthly API allowance. Your plan's normal limits on the number of prompts and composers still apply.
+- The MCP server is available on every plan, including the free trial.
+
+<Aside>
+  Want your code to fetch the prompts your agent publishes? Use the [TypeScript SDK](/getting-started/installation/) or the [REST API](/api/overview/).
+</Aside>

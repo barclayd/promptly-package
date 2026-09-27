@@ -31,7 +31,7 @@ export default defineConfig({
       },
       favicon: '/favicon.ico',
       description:
-        'TypeScript SDK for Promptly CMS - type-safe prompts for AI applications made delightfully simple',
+        'Docs for Promptly CMS - connect your AI agent over MCP, or fetch prompts at runtime with the TypeScript SDK and REST API',
       social: [
         {
           icon: 'github',
@@ -54,7 +54,15 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: 'Getting Started',
+          label: 'MCP Server',
+          items: [
+            { label: 'Overview', slug: 'mcp/overview' },
+            { label: 'Connect your agent', slug: 'mcp/connect' },
+            { label: 'Tools', slug: 'mcp/tools' },
+          ],
+        },
+        {
+          label: 'TypeScript SDK',
           items: [
             { label: 'Installation', slug: 'getting-started/installation' },
             { label: 'Quick Start', slug: 'getting-started/quick-start' },
@@ -65,7 +73,7 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Guides',
+          label: 'SDK Guides',
           items: [
             {
               label: 'Prompts',
@@ -102,21 +110,21 @@ export default defineConfig({
           ],
         },
         {
-          label: 'API',
-          items: [
-            { label: 'Overview', slug: 'api/overview' },
-            { label: 'Endpoints', slug: 'api/endpoints' },
-            { label: 'Rate Limits', slug: 'api/rate-limits' },
-            { label: 'Errors', slug: 'api/errors' },
-          ],
-        },
-        {
-          label: 'Reference',
+          label: 'SDK Reference',
           items: [
             { label: 'Client API', slug: 'reference/client-api' },
             { label: 'Schema API', slug: 'reference/schema-api' },
             { label: 'CLI', slug: 'reference/cli' },
             { label: 'Types', slug: 'reference/types' },
+          ],
+        },
+        {
+          label: 'REST API',
+          items: [
+            { label: 'Overview', slug: 'api/overview' },
+            { label: 'Endpoints', slug: 'api/endpoints' },
+            { label: 'Rate Limits', slug: 'api/rate-limits' },
+            { label: 'Errors', slug: 'api/errors' },
           ],
         },
       ],

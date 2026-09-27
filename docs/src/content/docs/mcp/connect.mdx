@@ -1,0 +1,180 @@
+---
+title: Connect your agent
+description: Add the Promptly MCP server to Claude, Codex, ChatGPT, Cursor or Grok.
+---
+
+import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+Every agent connects to the same server URL and signs in with your Promptly account. You don't need an API key.
+
+```
+https://app.promptlycms.com/mcp
+```
+
+When you sign in, Promptly asks what the agent may do: **Read only**, **Create and edit drafts** (the default) or **Create, edit, and publish**. **Run tests** is a separate option and is off by default. The commands below request every permission, and you narrow them on that screen. See [permissions](/mcp/overview/#permissions).
+
+<Aside type="tip">
+  Already signed in? [Settings → MCP connections](https://app.promptlycms.com/settings?tab=mcp) shows the same setup steps and lists every agent connected to your workspace.
+</Aside>
+
+## Choose your agent
+
+<Tabs syncKey="agent">
+  <TabItem label="Claude">
+
+    **Claude Code**
+
+    <Steps>
+
+    1. Add the server:
+
+       ```bash wrap
+       claude mcp add-json promptly '{"type":"http","url":"https://app.promptlycms.com/mcp","oauth":{"scopes":"mcp:read mcp:write mcp:publish mcp:run"}}'
+       ```
+
+    2. Open `/mcp` in Claude Code, select **promptly** and sign in to Promptly in your browser.
+
+    3. Select **Reconnect** in `/mcp` to load the tools.
+
+    </Steps>
+
+    If you added Promptly before, run `claude mcp remove promptly` first.
+
+    **Claude apps (web and desktop)**
+
+    <Steps>
+
+    1. Open **Customize → Connectors** and add a custom connector.
+
+    2. Enter `https://app.promptlycms.com/mcp` as the server URL.
+
+    3. Select **Connect** and sign in to Promptly.
+
+    </Steps>
+
+    On Team and Enterprise plans, a workspace owner adds the connector for the organization first. See [Anthropic's custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+
+  </TabItem>
+  <TabItem label="Codex / ChatGPT">
+
+    **Codex**
+
+    <Steps>
+
+    1. Add the server and sign in:
+
+       ```bash wrap
+       codex mcp add promptly --url https://app.promptlycms.com/mcp
+       codex mcp login promptly --scopes mcp:read,mcp:write,mcp:publish,mcp:run
+       ```
+
+    2. Finish signing in to Promptly in your browser.
+
+    </Steps>
+
+    If Promptly is already configured, run `codex mcp logout promptly` and repeat only the login command. See [OpenAI's Codex MCP guide](https://developers.openai.com/codex/mcp).
+
+    **ChatGPT**
+
+    <Steps>
+
+    1. Turn on developer mode, then open **Plugins → Create app**.
+
+    2. Enter `https://app.promptlycms.com/mcp` as the server URL and select **OAuth**.
+
+    3. Under **Advanced OAuth settings**, keep the detected default (CIMD).
+
+    4. Create the app and sign in to Promptly.
+
+    </Steps>
+
+    If the actions list is empty, select **Refresh actions**. On Business and Enterprise plans, an administrator may need to enable workspace access. See [OpenAI's developer mode guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt-beta).
+
+  </TabItem>
+  <TabItem label="Cursor">
+
+    Cursor needs a client ID, so register it with Promptly first.
+
+    <Steps>
+
+    1. Open [Register a client](https://app.promptlycms.com/settings/mcp/clients) in Promptly. Name it **Cursor** and enter these callback URLs, one per line:
+
+       ```
+       cursor://anysphere.cursor-mcp/oauth/callback
+       http://localhost:8787/callback
+       https://www.cursor.com/agents/mcp/oauth/callback
+       ```
+
+       For **Does your client require a secret?**, choose **No - public client**.
+
+    2. Add Promptly to `.cursor/mcp.json` in your project, or to `~/.cursor/mcp.json` for every project. Replace `YOUR_PROMPTLY_CLIENT_ID` with the client ID from step 1:
+
+       ```json title=".cursor/mcp.json"
+       {
+         "mcpServers": {
+           "promptly": {
+             "url": "https://app.promptlycms.com/mcp",
+             "auth": {
+               "CLIENT_ID": "YOUR_PROMPTLY_CLIENT_ID",
+               "scopes": ["mcp:read", "mcp:write", "mcp:publish", "mcp:run"]
+             }
+           }
+         }
+       }
+       ```
+
+    3. Enable **promptly** in Cursor's MCP settings and sign in to Promptly.
+
+    </Steps>
+
+    Use `mcp.json` rather than Cursor's `--add-mcp` command, which writes an entry Cursor's settings don't pick up. See [Cursor's MCP guide](https://cursor.com/docs/mcp).
+
+  </TabItem>
+  <TabItem label="Grok">
+
+    <Aside type="caution">
+      Grok support is new. If sign-in doesn't complete, [open an issue](https://github.com/barclayd/promptly-package/issues) and use another agent in the meantime.
+    </Aside>
+
+    Grok needs a client ID, so register it with Promptly first.
+
+    <Steps>
+
+    1. Open [Register a client](https://app.promptlycms.com/settings/mcp/clients) in Promptly. Name it **Grok** and enter these callback URLs, one per line:
+
+       ```
+       https://grok.com/connectors/oauth/callback
+       https://grok.com/connectors-oauth-exchange-code/
+       ```
+
+       For **Does your client require a secret?**, choose **No - public client**.
+
+    2. Go to [grok.com/connectors](https://grok.com/connectors), select **New Connector**, then **Custom**.
+
+    3. Enter `https://app.promptlycms.com/mcp` as the server URL. When Grok asks for OAuth details, paste the client ID from step 1, leave the client secret empty and choose PKCE (S256) if offered.
+
+    4. Save the connector and sign in to Promptly.
+
+    </Steps>
+
+    Grok Build and the xAI API only send API keys, and the Promptly MCP server uses sign-in instead, so they can't connect yet. See [xAI's connector guide](https://docs.x.ai/grok/connectors).
+
+  </TabItem>
+</Tabs>
+
+## Other agents
+
+Any agent that supports remote MCP servers over HTTP with OAuth can connect.
+
+- If it signs in with just the server URL, enter `https://app.promptlycms.com/mcp`.
+- If it asks for a client ID, [register a client](https://app.promptlycms.com/settings/mcp/clients) with the callback URLs your agent lists, then enter the client ID it returns.
+
+## Troubleshooting
+
+**Tools don't appear after signing in.** Reconnect the server: **Reconnect** in Claude Code's `/mcp`, **Refresh actions** in ChatGPT, or toggle the server off and on in Cursor.
+
+**The agent says it can't publish or run tests.** The connection was granted a narrower permission. Revoke it in [Settings → MCP connections](https://app.promptlycms.com/settings?tab=mcp), then connect again and choose the permission you need. Existing connections never gain permissions on their own.
+
+**Requests fail with `429 Too Many Requests`.** Each connection can make 120 requests a minute and each workspace 600. Wait for the time in the `Retry-After` header.
+
+**Removing access.** Revoke any connection in [Settings → MCP connections](https://app.promptlycms.com/settings?tab=mcp). Members manage their own connections, and owners and admins can revoke anyone's.
