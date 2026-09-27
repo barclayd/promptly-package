@@ -1,0 +1,67 @@
+---
+title: Tools
+description: Every tool the Promptly MCP server offers and the permission each one needs.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Your agent picks these tools for you, so you rarely need to name them. They're listed here so you know what each permission unlocks.
+
+## Read only
+
+| Tool | What it does |
+| --- | --- |
+| `get_connection` | Shows the connected workspace and the agent's current permissions |
+| `search_content` | Finds prompts, composers and snippets by name or description |
+| `get_prompt` | Reads a prompt's draft, working copy, latest or exact published version |
+| `get_composer` | Reads a composer's content, configuration and dependencies |
+| `get_snippet` | Reads a snippet so it can be reused in prompts |
+| `list_versions` | Lists the draft and published versions of a prompt, composer or snippet |
+| `list_available_models` | Lists the models enabled by your workspace's API keys |
+| `validate_prompt` | Checks whether a prompt is ready to publish |
+| `validate_composer` | Checks a composer's structure and that its prompts are published |
+| `preview_prompt` | Returns the exact system and user messages for some input, without calling a model |
+| `preview_composer` | Returns a composer's assembled output with placeholders for prompt results |
+| `generate_composer_markup` | Generates the markup for prompt references and input fields in a composer |
+| `list_changes` | Lists recent activity for the workspace or one item |
+| `get_change` | Shows the before and after state of one change |
+
+## Create and edit drafts
+
+| Tool | What it does |
+| --- | --- |
+| `create_prompt` | Creates a prompt and its draft |
+| `create_composer` | Creates a composer and its draft |
+| `update_prompt` | Edits a prompt draft with a patch, exact text replacements or a full replacement |
+| `update_composer` | Edits a composer draft the same way |
+| `restore_change` | Restores an earlier saved state into the current draft |
+
+## Create, edit, and publish
+
+| Tool | What it does |
+| --- | --- |
+| `publish_prompt` | Publishes the prompt draft, using Promptly's suggested version number unless one is given |
+| `publish_composer` | Publishes the composer draft. Its prompts must already be published |
+
+## Run tests
+
+| Tool | What it does |
+| --- | --- |
+| `test_prompt` | Runs one prompt version with supplied or saved sample input |
+| `test_snippet` | Runs a snippet as system instructions against a test message |
+| `test_composer` | Runs a composer and every prompt it uses, then assembles the output |
+| `compare_tests` | Runs two to four versions or model settings side by side with the same input |
+| `get_test_result` | Fetches a previous result again without calling a model |
+
+## Testing costs
+
+Tests call real models using your workspace's provider API keys, so they may cost money.
+
+- Model and temperature overrides only apply to that test. Nothing saved changes.
+- Output defaults to 2,048 tokens per call, up to a maximum of 4,096.
+- A composer test runs at most eight prompts. A comparison makes at most 16 model calls.
+- Results are kept for 24 hours. If a test is interrupted, your agent fetches the stored result instead of paying for another run.
+
+<Aside>
+  Validation and previews never call a model, so your agent can check its work for free before you grant **Run tests**.
+</Aside>

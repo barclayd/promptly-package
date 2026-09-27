@@ -27,50 +27,50 @@ Every API response includes headers with your current usage:
 ### Reading headers
 
 <Tabs>
-  <TabItem label="fetch">
-  ```typescript
-  const response = await fetch(
-    'https://api.promptlycms.com/prompts/my-prompt',
-    {
-      headers: { Authorization: 'Bearer pk_live_...' },
-    },
-  );
+<TabItem label="fetch">
+```typescript
+const response = await fetch(
+  'https://api.promptlycms.com/prompts/my-prompt',
+  {
+    headers: { Authorization: 'Bearer pk_live_...' },
+  },
+);
 
-  const limit = response.headers.get('X-RateLimit-Limit');
-  const remaining = response.headers.get('X-RateLimit-Remaining');
-  const reset = response.headers.get('X-RateLimit-Reset');
+const limit = response.headers.get('X-RateLimit-Limit');
+const remaining = response.headers.get('X-RateLimit-Remaining');
+const reset = response.headers.get('X-RateLimit-Reset');
 
-  console.log(`${remaining}/${limit} requests remaining`);
-  console.log(`Resets at ${new Date(Number(reset) * 1000).toISOString()}`);
-  ```
-  </TabItem>
-  <TabItem label="curl">
-  ```bash
-  curl -i https://api.promptlycms.com/prompts/my-prompt \
-    -H "Authorization: Bearer pk_live_..."
+console.log(`${remaining}/${limit} requests remaining`);
+console.log(`Resets at ${new Date(Number(reset) * 1000).toISOString()}`);
+```
+</TabItem>
+<TabItem label="curl">
+```bash
+curl -i https://api.promptlycms.com/prompts/my-prompt \
+  -H "Authorization: Bearer pk_live_..."
 
-  # Response headers:
-  # X-RateLimit-Limit: 5000
-  # X-RateLimit-Remaining: 4832
-  # X-RateLimit-Reset: 1735689600
-  ```
-  </TabItem>
-  <TabItem label="Python">
-  ```python
-  import requests
+# Response headers:
+# X-RateLimit-Limit: 5000
+# X-RateLimit-Remaining: 4832
+# X-RateLimit-Reset: 1735689600
+```
+</TabItem>
+<TabItem label="Python">
+```python
+import requests
 
-  response = requests.get(
-      "https://api.promptlycms.com/prompts/my-prompt",
-      headers={"Authorization": "Bearer pk_live_..."},
-  )
+response = requests.get(
+    "https://api.promptlycms.com/prompts/my-prompt",
+    headers={"Authorization": "Bearer pk_live_..."},
+)
 
-  limit = response.headers["X-RateLimit-Limit"]
-  remaining = response.headers["X-RateLimit-Remaining"]
-  reset = response.headers["X-RateLimit-Reset"]
+limit = response.headers["X-RateLimit-Limit"]
+remaining = response.headers["X-RateLimit-Remaining"]
+reset = response.headers["X-RateLimit-Reset"]
 
-  print(f"{remaining}/{limit} requests remaining")
-  ```
-  </TabItem>
+print(f"{remaining}/{limit} requests remaining")
+```
+</TabItem>
 </Tabs>
 
 ## 429 responses
