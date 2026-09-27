@@ -5,6 +5,16 @@ description: Add the Promptly MCP server to Claude, Codex, ChatGPT or Cursor.
 
 import { Steps, Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
+<Aside type="tip" title="Hand this page to your agent">
+The quickest way to connect. Paste this into Claude Code, Codex or Cursor. Your agent reads this page and runs the setup, and you only sign in.
+
+```text wrap
+Read https://docs.promptlycms.com/mcp/connect.md, then connect yourself to the Promptly MCP server by following the steps for your app. Run the commands yourself and tell me when I need to sign in.
+```
+
+You can also select **Copy Markdown** above and paste the whole page into your chat. Every page on this site has a Markdown version: add `.md` to its address. [llms.txt](https://docs.promptlycms.com/llms.txt) lists them all.
+</Aside>
+
 Every agent connects to the same server URL and signs in with your Promptly account. You don't need an API key.
 
 ```
@@ -136,7 +146,7 @@ Use `mcp.json` rather than Cursor's `--add-mcp` command, which writes an entry C
 
 ## Let your agent set it up
 
-Rather not run the steps yourself? Paste this prompt into your agent. It runs the setup and tells you when to sign in to Promptly.
+Want more control than the one-line prompt at the top? Paste the prompt for your agent instead. It spells out each step, and your agent tells you when to sign in to Promptly.
 
 <Tabs syncKey="agent">
 <TabItem label="Claude">
@@ -197,10 +207,6 @@ If anything fails, read https://docs.promptlycms.com/mcp/connect.md and help me 
 
 </TabItem>
 </Tabs>
-
-<Aside type="tip" title="Give your agent any page">
-Every page on this site is also available as Markdown. Select **Copy Markdown** at the top of a page to paste it into a chat, or give your agent the link with `.md` on the end, like [docs.promptlycms.com/mcp/connect.md](https://docs.promptlycms.com/mcp/connect.md). For the whole site, share [docs.promptlycms.com/llms.txt](https://docs.promptlycms.com/llms.txt).
-</Aside>
 
 ## Other agents
 
